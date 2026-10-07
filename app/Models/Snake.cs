@@ -8,26 +8,25 @@ class SnakeHead //考量私有化哪些
 
     public List<State.Point> Snake { get;} =
     [
-        new (0,0),
-        new (0,1),
-        new (0,2)
+        new (10,15),
+        new (10,16),
+        new (10,17)
     ];
-
-    public int Score { get; } = 0;
 
     //指向头--尾加的那个Point（属性）
     public State.Point Head => Snake[^1];
 
-    public void Move(State.Direction nextdir,State.Point newHead,State.Point nextLocation)
+    public void Move(State.Direction nextdir)
     {
-        nextLocation = nextdir switch
+        var head = Head;
+        State.Point nextLocation = nextdir switch
         {
-            State.Direction.Up => new (Head.X, Head.Y - 1),
-            State.Direction.Down => new (Head.X, Head.Y + 1),
-            State.Direction.Left => new (Head.X - 1, Head.Y),
-            State.Direction.Right => new (Head.X + 1, Head.Y),            
-            _ => Head
+            State.Direction.Up => new (head.X, head.Y - 1),
+            State.Direction.Down => new (head.X, head.Y + 1),
+            State.Direction.Left => new (head.X - 1, head.Y),
+            State.Direction.Right => new (head.X + 1, head.Y),            
+            _ => head
         };
-        newHead = nextLocation;
+        Snake.Add(nextLocation);
     }
 }

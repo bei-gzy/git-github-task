@@ -1,22 +1,11 @@
 namespace app.Services;
 using app.Models;
 
-class Collsion 
+class Collision 
 {   
-    public bool CheckCollision(SnakeHead snake)
-    {    
-        var snakeHead = new string[snake.Head.X, snake.Head.Y];
-        if (snakeHead[snake.Head.X, snake.Head.Y] == "■")
-        {   
-            DefeatSystem.Defeat();
-            return true;
-        }
-        else if(snakeHead[snake.Head.X, snake.Head.Y] == "✰")
-        {
-            snakeHead[snake.Head.X, snake.Head.Y] = " "; 
-            return true;
-        }
+   public bool CheckWallCollision(SnakeHead snake,Map map) => map.IsWall(snake.Head.X,snake.Head.Y);
 
-        return false;
-    }
+    public bool CheckSnakeCollision(SnakeHead snake) => snake.Snake.Contains(snake.Head); 
+
+    public bool CheckFoodCollision(SnakeHead snake,Map map) => map.IsFood(snake.Head.X,snake.Head.Y);
 }

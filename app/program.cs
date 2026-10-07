@@ -23,20 +23,25 @@ while (true)
 }
 
 State.GamingState state = State.GamingState.GamingStateRunning;
+var map = new Map();
+var collision = new Collision(); 
+State.Direction dir = State.Direction.Up;
 
 while (state == State.GamingState.GamingStateRunning)
 {
-    Map.PrintMap();
+    State score = new State();
+    Console.WriteLine("——————————————Weclome TO Snake Eat Game——————————————");
+    Console.WriteLine("法则:WASD控制方向,按Esc退出游戏");
     var snake = new SnakeHead()
     {
         //头是1，吃一豆加一个身体单位，记号加一
         HId = 0,
         Name = sname,
     };
+    map.PrintMap(snake);
 
     while(Console.KeyAvailable)
     {
-        State.Direction dir = State.Direction.Up;
         State.Direction nextdir = dir;
         ConsoleKeyInfo key = Console.ReadKey(intercept: true); 
         nextdir = key.Key switch
@@ -51,14 +56,25 @@ while (state == State.GamingState.GamingStateRunning)
         
         snake.Move(nextdir);
 
-        if(CheckCollision(snake))
+        if(collision.CheckWallCollision(snake,map))
         {
-            
+            state = State.GamingState.GamingGameover;
+            DefeatSystem.Defeat(score);
+            break;
         }
-        
+        if(collision.CheckSnakeCollision(snake))
+        {
+            state = State.GamingState.GamingGameover;
+            DefeatSystem.Defeat(score);
+            break;
+        }
+        if(collision.CheckFoodCollision(snake,map))
+        {
+            score.SetScore(score.GetScore() + 1);
+        }
     }
- 
     Console.Clear();
+    Thread.Sleep(200);
 }
 
 

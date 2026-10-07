@@ -2,15 +2,24 @@ namespace app.Services;
 
 class State
 {
-    public int Score { get; private set;} = 3;
+    private int Score { get; set;}
 
-    public void setScore()
+    public void SetScore(int score)
     {
-        
+        if(score > 3)
+            this.Score = score;
+        else if
+           (score <= 3)
+            DefeatSystem.Defeat(this);
     }
-    
-    public record Point(int X, int Y);
 
+    public int GetScore()
+    {
+        return this.Score;
+    }
+
+    public record Point(int X, int Y);
+    
     public enum Direction
     {
         Up,

@@ -1,13 +1,12 @@
 namespace app.Services;
 
-class DefeatSystem()
+class DefeatSystem
 {
-    public static void Defeat()
+    public static void Defeat(State state)
     {
         Console.Clear();
         Console.ResetColor();
-        
-        int score = new State{}.Score;
+        int score = state.GetScore();
 
         string[] DefeatMessage =
         {
@@ -16,7 +15,10 @@ class DefeatSystem()
             "按下空格键重新开始游戏！",
             "按下Esc键退出游戏!"
         };
-        //空格
+        if(Console.ReadKey().Key == ConsoleKey.Spacebar)
+        {
+            
+        }
         //delete
     }
     //是否复活--待开发
