@@ -1,0 +1,7 @@
+{
+    // 在资源管理器里隐藏 .NET 编译产物
+    "files.exclude": {
+        "**/bin": true,
+        "**/obj": true
+    }
+}
