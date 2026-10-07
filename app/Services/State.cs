@@ -6,11 +6,7 @@ class State
 
     public void SetScore(int score)
     {
-        if(score > 3)
-            this.Score = score;
-        else if
-           (score <= 3)
-            DefeatSystem.Defeat(this);
+        this.Score = score;
     }
 
     public int GetScore()

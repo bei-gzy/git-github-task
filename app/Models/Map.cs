@@ -9,10 +9,10 @@ class Map
     public const int height = 30;
 
     //数组
-    private readonly string[,] map = new string[width,height];//[,]表示二维数组，几个“，”表示几纬
+    private readonly string[,] map = new string[height,width];//[,]表示二维数组，几个“，”表示几纬
     private readonly Random food = new();
 
-    private bool IsBorder(int x,int y) => x == 0 || y == 0 || x == width - 1 || y == height - 1; 
+    private  static bool IsBorder(int x,int y) => x == 0 || y == 0 || x == width - 1 || y == height - 1; 
 
     private void InitMap()
     {
@@ -20,7 +20,7 @@ class Map
         {
             for (int j = 0; j < width; j++)
             {
-                map[i,j] = IsBorder(i,j) ? "■" : " "; 
+                map[i,j] = IsBorder(j,i) ? "■" : " "; 
             }
         }
     }
@@ -42,7 +42,7 @@ class Map
         GenerateFood();
     }
 
-    public bool IsWall(int x,int y) => x >= width || y >= height || map[x,y] == "■";
+    public bool IsWall(int x,int y) => x < 0 || y < 0 || x >= width || y >= height || map[x,y] == "■";
 
     public bool IsFood(int x,int y) => x > 0 || y >0 || x < width || y < height || map[x,y] == "✰";
  
@@ -59,8 +59,9 @@ class Map
                 else if(body.Contains(new State.Point(j,i)))
                     Console.Write("◊");
                 else
-                    Console.Write(map[i,j]); 
+                Console.Write(map[i,j]);
             }
+            Console.WriteLine(); 
         }
     }
 }

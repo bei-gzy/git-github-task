@@ -15,10 +15,6 @@ class DefeatSystem
             "按下空格键重新开始游戏！",
             "按下Esc键退出游戏!"
         };
-        if(Console.ReadKey().Key == ConsoleKey.Spacebar)
-        {
-            
-        }
         //delete
     }
     //是否复活--待开发
