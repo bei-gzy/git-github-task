@@ -40,7 +40,8 @@ while (state == State.GamingState.GamingStateRunning)
     };
     map.PrintMap(snake);
 
-    while(Console.KeyAvailable)
+
+    while(Console.ReadKey(intercept: true).Key != ConsoleKey.Escape)
     {
         State.Direction nextdir = dir;
         ConsoleKeyInfo key = Console.ReadKey(intercept: true); 
