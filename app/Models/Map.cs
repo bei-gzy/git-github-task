@@ -31,8 +31,22 @@ class Map
 		{
 			x = food.Next(1, Width - 1);
 			y = food.Next(1, Height - 1);
-		} while (map[y, x] != " ");
+		} while (map[y, x] != " ");//&& map[y, x] != "☻" && map[y, x] != "◊"
 		map[y, x] = "✰";
+	}
+
+	public void DeleteFood()
+	{
+		for (int i = 0; i < Height; i++)
+		{
+			for (int j = 0; j < Width; j++)
+			{
+				if (map[i, j] == "✰")
+				{
+					map[i, j] = " ";
+				}
+			}
+		}
 	}
 
 	public Map()

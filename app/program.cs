@@ -47,7 +47,6 @@ while (state == State.GamingState.GamingStateRunning)
 		if (tkey == ConsoleKey.Escape)
 		{
 			state = State.GamingState.GamingGameover;
-			break;
 		}
 
 		var nextdir = tkey switch
@@ -68,19 +67,21 @@ while (state == State.GamingState.GamingStateRunning)
 	{
 		state = State.GamingState.GamingGameover;
 		DefeatSystem.Defeat(score);
-		break;
 	}
 
 	if (Collision.CheckFoodCollision(snake, map))
 	{
-		snake.Snake.Add(snake.Tail);
+		map.DeleteFood();
+		snake.Snake.Insert(0, snake.Tail);
 		score.SetScore(score.GetScore() + 1);
 		map.GenerateFood();
 	}
+	else
+	{
+		snake.Snake.RemoveAt(0);
+	}
 
-	snake.Snake.RemoveAt(0);
-
-	Thread.Sleep(50);
+	Thread.Sleep(150);
 }
 
 // 只有普通语句 → 生成 void Main()
