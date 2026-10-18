@@ -1,14 +1,10 @@
 namespace App.Services;
 
-class State
+public class State
 {
-	int Score { get; set; }//默认private
-
-	public void SetScore(int score) => Score = score;
-
-	public int GetScore() => Score;
-
 	public record Point(int X, int Y);
+
+	public static bool IsGameOver { get; set; } = false;
 
 	public enum Direction
 	{

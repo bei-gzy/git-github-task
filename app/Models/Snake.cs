@@ -1,9 +1,9 @@
 using App.Services;
 namespace App.Models;
 
-class SnakeHead //考量私有化哪些
+public class SnakeHead //考量私有化哪些
 {
-	public int HId { get; set; }
+	public int HId { get; set; }//用于排名
 
 	public string? Name { get; set; }
 
@@ -28,7 +28,7 @@ class SnakeHead //考量私有化哪些
 			State.Direction.Down => new(head.X, head.Y + 1),
 			State.Direction.Left => new(head.X - 1, head.Y),
 			State.Direction.Right => new(head.X + 1, head.Y),
-			_ => head
+			_ => head//不会走到这一步
 		};
 		Snake.Add(nextLocation);
 	}

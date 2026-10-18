@@ -1,17 +1,17 @@
+using App.GameScore;
 namespace App.Services;
 
 class DefeatSystem
 {
-	public static void Defeat(State state)
+	public static void Defeat(PlayerScore playerscore)
 	{
 		Console.Clear();
 		Console.ResetColor();
-		int score = state.GetScore();
 
 		string[] defeatMessage =
 		[
 			"Gaming Over!",
-			"得分: " + score,
+			"得分: " + playerscore.MyScore,
 			"游戏结束。"
 		];
 
@@ -19,6 +19,8 @@ class DefeatSystem
 		{
 			Console.WriteLine(line);
 		}
+
+		playerscore.ClearScore();
 	}
 	//是否复活--待开发
 }
