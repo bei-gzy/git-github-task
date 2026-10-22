@@ -5,6 +5,7 @@ public class GameMap
 {
 	protected const int MapWidth = 25;
 	protected const int MapHeight = 30;
+
 	protected static (int Width, int Height) MapSize => (MapWidth, MapHeight);
 	static readonly string[,] Map = new string[MapSize.Height, MapSize.Width];
 

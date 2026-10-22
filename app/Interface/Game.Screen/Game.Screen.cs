@@ -1,11 +1,17 @@
 using App.Interface.State;
 
-namespace Game.Screen;
+namespace App.Game.Screen;
 
 class HomeScreen
 {
-	public static void PrintHoemScreen()
+	protected static GameState.HomeScreenState hstate = GameState.HomeScreenState.Choosegamemode;
+
+	protected static GameState.InterfaceState istate = GameState.InterfaceState.ChoosingMode;
+
+	static void PrintHomeScreen()
 	{
+		Console.Clear();
+
 		string[] _ =
 		[
 			"Snake Game!欢迎游玩贪吃蛇小游戏",
@@ -18,29 +24,26 @@ class HomeScreen
 		{
 			Console.WriteLine(line);
 		}
+	}
 
-		var key = Console.ReadKey();
+	public static ConsoleKeyInfo ReadKey() => Console.KeyAvailable ? Console.ReadKey() : default;
 
-		var state = HomeScreenState.Choosegamemode;
+	public static async Task ScreenFuncSystem(GameState gameRunningState)
+	{
 
-		while (state is HomeScreenState.Choosegamemode)
+		while (hstate is GameState.HomeScreenState.Choosegamemode)
 		{
-			state = key.Key switch
+			Console.Clear();
+			PrintHomeScreen();
+			var tkey = ReadKey().Key;
+			_ = tkey switch
 			{
-				ConsoleKey.D1 => HomeScreenState.Choosegamemode,
-				ConsoleKey.D2 => HomeScreenState.Setmenu,
-				ConsoleKey.D3 => HomeScreenState.Exitgame,
-				_ => HomeScreenState.Choosegamemode,
+				ConsoleKey.D1 => await GameStart.ChooseGameMode(),
+				ConsoleKey.D2 => await GameSetMenu.SetMenu(),
+				ConsoleKey.D3 => await GameExitGame.ExitGame(gameRunningState),
+				_ => hstate
 			};
-
-			Action action = state switch
-			{
-				HomeScreenState.Choosegamemode => GameStart.ChooseGameMode,
-				HomeScreenState.Setmenu => GameSetMenu.SetMenu,
-				HomeScreenState.Exitgame => GameExitGame.ExitGame,
-				_ => () => { }
-			};
-			action();
 		}
 	}
 }
+

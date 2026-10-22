@@ -4,9 +4,8 @@ using App.GameScore;
 
 namespace App.GameCollision;
 
-public class CollisionArgs(Collision ecollision, SnakeHead snake, PlayerScore playerscore, GameMap map, Score score)
+public class CollisionArgs(SnakeHead snake, PlayerScore playerscore, GameMap map, Score score)
 {
-	public Collision Mcollision { get; } = ecollision;
 	public SnakeHead Snake { get; } = snake;
 	public PlayerScore PlayerScore { get; } = playerscore;
 	public int GetScore { get; set; }
@@ -18,9 +17,9 @@ public class Collision()
 {
 	public event EventHandler<CollisionArgs>? CollisionWhat;
 
-	public void TouchCollision(Collision ecollision, SnakeHead snake, PlayerScore playerscore, GameMap map, Score score)
+	public void TouchCollision(SnakeHead snake, PlayerScore playerscore, GameMap map, Score score)
 	{
-		var args = new CollisionArgs(ecollision, snake, playerscore, map, score);
+		var args = new CollisionArgs(snake, playerscore, map, score);
 
 		OnCollisionWhat(args);
 	}

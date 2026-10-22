@@ -1,9 +1,11 @@
 using App.Interface.State;
-namespace Game.Screen;
+using App.Services;
 
-class GameStart
+namespace App.Game.Screen;
+
+class GameStart : HomeScreen
 {
-	public static void ChooseGameMode()
+	static void PringtChoose()
 	{
 		string[] _ =
 		[
@@ -16,33 +18,43 @@ class GameStart
 		{
 			Console.WriteLine(line);
 		}
+	}
 
-		var key = Console.ReadKey();
+	public static async Task<GameState.HomeScreenState> ChooseGameMode(GamePrepareArgs args)
+	{
+		var key = ReadKey();
 
-		var state = InterfaceState.SinglePlayerMode;
-
-		while (state == InterfaceState.SinglePlayerMode)
+		while (istate is not GameState.InterfaceState.ExitMode)
 		{
-			Action action = key.Key switch
+			Console.Clear();
+			PringtChoose();
+			_ = key.Key switch
 			{
-				ConsoleKey.D1 => SinglePlayerMode,
-				ConsoleKey.D2 => MultiPlayerMode,
-				ConsoleKey.D3 => ReturnToMainMenu,
-				_ => () => { }
+				ConsoleKey.D1 => await SinglePlayerMode(args),
+				ConsoleKey.D2 => await MultiPlayerMode(),
+				ConsoleKey.D3 => await ReturnToMainMenu(),
+				_ => istate
 			};
-			action();
 		}
+
+		return hstate;
 	}
 
-	public static void SinglePlayerMode()
+	public static async Task<GameState.InterfaceState> SinglePlayerMode(GamePrepareArgs args) => await FuncSystem.GameRunSystemAsync(args.Time, args.Snake, args.KeyBoardController, GamePrepareArgs.Button, GamePrepareArgs.Direction, args.CollisionController, GamePrepareArgs.Collision, args.PlayerScore, args.GameMap, args.Score)
+			? (istate = GameState.InterfaceState.SinglePlayerMode)
+			: istate = GameState.InterfaceState.ExitMode;
+
+	public static async Task<GameState.InterfaceState> MultiPlayerMode()
 	{
+		Console.Clear();
+		await Task.Delay(0);
+		return istate = GameState.InterfaceState.MultiPlayerMode;
 	}
 
-	public static void MultiPlayerMode()
+	public static async Task<GameState.InterfaceState> ReturnToMainMenu()
 	{
-	}
-
-	public static void ReturnToMainMenu()
-	{
+		Console.Clear();
+		await Task.Delay(100);
+		return istate = GameState.InterfaceState.ExitMode;
 	}
 }

@@ -2,14 +2,17 @@ using App.Models;
 using App.GameScore;
 using App.GameCollision;
 using App.KeyBoard;
+using App.GameTime;
 
 namespace App.Services;
 
 public class FuncSystem
 {
-	public static async Task<bool> GameRunSystemAsync(SnakeHead snake, KeyBoardController keyBoardController, Button button, State.Direction dir, CollisionController collisionController, Collision collision, PlayerScore playerscore, GameMap map, Score score)
+	public static async Task<bool> GameRunSystemAsync(GameTimes time, SnakeHead snake, KeyBoardController keyBoardController, Button button, State.Direction dir, CollisionController collisionController, Collision collision, PlayerScore playerscore, GameMap map, Score score)
 	{
-		while (!State.IsGameOver)
+		time.Start();
+
+		while (!State.IsGameOver && time.IsPauseTime)
 		{
 			Console.Clear();
 			Console.WriteLine("——————————————Weclome TO Snake Eat Game——————————————");
@@ -28,9 +31,12 @@ public class FuncSystem
 
 			snake.Move(keyBoardController.Direction);
 
-			collision.TouchCollision(collision, snake, playerscore, map, score);
+			collision.TouchCollision(snake, playerscore, map, score);
 
-			await Task.Delay(150);
+			await Task.Delay(200);
+
+			//时间截至
+			await
 		}
 
 		keyBoardController.CancleClicked();

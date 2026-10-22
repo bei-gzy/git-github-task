@@ -1,45 +1,40 @@
-namespace Game.Register;
+using Game.Register;
 
-public class GameRegister
+namespace App.Game.Register;
+
+public class PlayerRegisterInterface
 {
-	public event Action<Player>? GameRegisterInterface;
+	static readonly List<Player> PlayerNames = [];
 
-	public void Register(string? snakename) => GameRegisterInterface?.Invoke(new Player(snakename));
+	static bool IsSetPlaeyerName { get; set; } = false;
 
-	public void TouchGameRegister(string? snakename) => Register(snakename);
-}
-
-public class GameRegisterSystem()
-{
-	Action<Player>? mGameRegisterInterface;
-
-	public void DoGameRegisterSystem(GameRegister s, string? snakename)
+	public static bool PrintPlayerRegisterInterface()
 	{
-		mGameRegisterInterface = (player) =>
+		Console.WriteLine("欢迎来到贪吃蛇游戏！");
+		while (!IsSetPlaeyerName)
 		{
-			player.SetSnakeName(snakename);
-		};
+			Console.WriteLine("请为你的贪吃蛇设置一个名字： ");
+			string? playername = Console.ReadLine();
+			foreach (var player in PlayerNames)
+			{
+				if (playername == player.Name)
+				{
+					Console.WriteLine("名字" + playername + "已存在，请重新输入！");
+					break;
+				}
+			}
 
-		s.GameRegisterInterface += mGameRegisterInterface;
-	}
+			if (playername is not null)
+			{
+				Console.WriteLine("已将你的名字已设置为：" + playername);
+				PlayerNames.Add(new Player(playername));
+				//IsSetPlaeyerName = true;
+				break;
+			}
 
-	public void CancelGameRegisterSystem(GameRegister s)
-	{
-		if (mGameRegisterInterface is not null)
-		{
-			s.GameRegisterInterface -= mGameRegisterInterface;
+			Console.WriteLine("请输入有效的名字！");
 		}
-	}
-}
 
-public class UseGameRegisterSystem()
-{
-	public static void ToUseGameRegisterSystem(string? sname, Player player, GameRegister gameRegister, GameRegisterSystem gameRegisterSystem)
-	{
-		gameRegisterSystem.DoGameRegisterSystem(gameRegister, sname);
-
-		gameRegister.TouchGameRegister(sname);
-
-		gameRegisterSystem.CancelGameRegisterSystem(gameRegister);
+		return IsSetPlaeyerName = true;
 	}
 }
