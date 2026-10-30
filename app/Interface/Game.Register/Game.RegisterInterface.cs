@@ -1,38 +1,42 @@
-using Game.Register;
+using App.World;
 
 namespace App.Game.Register;
 
-public class PlayerRegisterInterface
+class PlayerRegisterInterface
 {
-	static readonly List<Player> PlayerNames = [];
+	internal static List<Player> PlayerLists = [];
+
+	internal static Player? CurrentPlayer { get; private set; }
 
 	static bool IsSetPlaeyerName { get; set; } = false;
 
 	public static bool PrintPlayerRegisterInterface()
 	{
 		Console.WriteLine("欢迎来到贪吃蛇游戏！");
+
 		while (!IsSetPlaeyerName)
 		{
 			Console.WriteLine("请为你的贪吃蛇设置一个名字： ");
-			string? playername = Console.ReadLine();
-			foreach (var player in PlayerNames)
+			string? playername = Console.ReadLine()?.Trim();
+
+			if (string.IsNullOrWhiteSpace(playername))
 			{
-				if (playername == player.Name)
-				{
-					Console.WriteLine("名字" + playername + "已存在，请重新输入！");
-					break;
-				}
+				Console.WriteLine("请输入有效的名字！");
+				continue;
 			}
 
-			if (playername is not null)
+			if (PlayerLists.Any(p => p.Name == playername))
 			{
-				Console.WriteLine("已将你的名字已设置为：" + playername);
-				PlayerNames.Add(new Player(playername));
-				//IsSetPlaeyerName = true;
-				break;
+				Console.WriteLine("名字" + playername + "已存在，请重新输入！");
+				continue;
 			}
 
-			Console.WriteLine("请输入有效的名字！");
+			Console.WriteLine("已将你的名字已设置为：" + playername);
+			var a = new Player(Guid.NewGuid().ToString("N")[..8]);
+			a.SetName(playername);
+			PlayerLists.Add(a);
+			CurrentPlayer = a;
+			break;
 		}
 
 		return IsSetPlaeyerName = true;

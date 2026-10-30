@@ -1,4 +1,4 @@
-namespace App.Interface.State;
+namespace App.GameStates;
 
 public class GameState
 {
@@ -25,4 +25,3 @@ public class GameState
 		GameOff,
 	}
 }
-

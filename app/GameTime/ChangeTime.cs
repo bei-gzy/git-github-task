@@ -1,46 +1,36 @@
-using App.Game.Screen;
+using App.World;
 
 namespace App.GameTime;
 
-public class SetTime
+//游戏时长预设：设置菜单和以后可能的联机房间共用同一份
+static class SetTime
 {
-	internal static (ConsoleKeyInfo, double) GameTimeOptions;
-	public static void ChangeTime(GamePrepareArgs args)
+	public static readonly (ConsoleKey Key, char Digit, double Seconds, string Label)[] Options =
+	[
+		(ConsoleKey.D1, '1', 60.0, "一分钟"),
+		(ConsoleKey.D2, '2', 180.0, "三分钟"),
+		(ConsoleKey.D3, '3', 300.0, "五分钟")
+	];
+
+	public static void PrintOptions()
 	{
-		PrintOptions();
-		if (ReadKey().Key is ConsoleKey.D1 && ReadKey().Key is ConsoleKey.D2)
-		{
-			GameTimeOptions.Item1 = ReadKey();
-			GameTimeOptions.Item2 = GameTimeOptions.Item1.Key switch
-			{
-				ConsoleKey.D1 => 60.0,
-				ConsoleKey.D2 => 180.0,
-				ConsoleKey.D3 => 300.0,
-				_ => 60.0
-			};
+		Console.WriteLine("请设置游戏时间");
 
-			args.Time.SetTime(GameTimeOptions.Item2);
-		}
-
-		Console.WriteLine("设置失败！");
-		return;
+		foreach (var (_, digit, _, label) in Options)
+			Console.WriteLine($"{digit}、{label}");
 	}
 
-	public static ConsoleKeyInfo ReadKey() => Console.KeyAvailable ? Console.ReadKey() : default;
-
-	static void PrintOptions()
+	/// <summary>按键命中预设就写进世界，返回是否改了</summary>
+	public static bool Apply(GameWorld world, ConsoleKey key)
 	{
-		string[] choice =
-		[
-			"请设置游戏时间",
-			"1、一分钟",
-			"2、三分钟",
-			"3、五分钟"
-		];
-
-		foreach (string e in choice)
+		foreach (var (optionKey, _, seconds, _) in Options)
 		{
-			Console.WriteLine(e);
+			if (optionKey != key) continue;
+
+			world.GameDurationSeconds = seconds;
+			return true;
 		}
+
+		return false;
 	}
 }

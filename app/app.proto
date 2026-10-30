@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package snakegame;
+
+option csharp_namespace = "App.Protocol";
+
+enum Direction {
+  DIRECTION_UNSPECIFIED = 0;
+  DIRECTION_UP = 1;
+  DIRECTION_DOWN = 2;
+  DIRECTION_LEFT = 3;
+  DIRECTION_RIGHT = 4;
+}
+
+message PlayerInput {
+  string room_id = 1;
+  string player_id = 2;
+  uint64 client_tick = 3;
+  Direction direction = 4;
+  bool use_dash = 5;
+}
+
+message Point {
+  sint32 x = 1;
+  sint32 y = 2;
+}
+
+message PlayerState {
+  string player_id = 1;
+  repeated Point snake_segments = 2;
+  int32 score = 3;
+  bool is_alive = 4;
+}
+
+message FoodState {
+  Point position = 1;
+  int32 food_type = 2;
+}
+
+message GameState {
+  string room_id = 1;
+  uint64 server_tick = 2;
+  repeated PlayerState players = 3;
+  repeated FoodState foods = 4;
+  bool is_game_over = 5;
+}

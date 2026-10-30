@@ -1,0 +1,33 @@
+{
+  "gameDurationSeconds": 60.0,
+
+  "tickMilliseconds": 200,
+
+  "map":
+  {
+	"GameMapWidth": 25,
+  	"GameMapHeight": 30
+  },
+
+  "food":
+  {
+	"GenerateFoodSeconds": 5,
+	"GenerateFoodCount": 3
+  },
+
+  "NetWorkConfig":
+  {
+	"BrokerHost": "localhost",
+	"BrokerPort": 1883,
+	"BrokerUsername": "player",
+	"RoomId": "room1"
+  },
+
+  "SkillConfig":[
+  {
+	"SkillName": "dash",
+	"CoolDownSeconds": 5.0,
+	"DurationSeconds": 4.0
+  }
+	]
+}

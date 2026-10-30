@@ -3,5 +3,9 @@
     "files.exclude": {
         "**/bin": true,
         "**/obj": true
-    }
+    },
+
+    // 关掉自动保存：避免脏缓冲区在后台把磁盘上的新代码盖回旧版
+    // （想恢复默认就把下面这行删掉）
+    "files.autoSave": "off"
 }

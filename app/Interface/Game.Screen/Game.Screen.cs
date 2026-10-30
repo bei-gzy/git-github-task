@@ -1,12 +1,11 @@
-using App.Interface.State;
+using App.Config;
+using App.GameStates;
 
 namespace App.Game.Screen;
 
 class HomeScreen
 {
 	protected static GameState.HomeScreenState hstate = GameState.HomeScreenState.Choosegamemode;
-
-	protected static GameState.InterfaceState istate = GameState.InterfaceState.ChoosingMode;
 
 	static void PrintHomeScreen()
 	{
@@ -26,24 +25,25 @@ class HomeScreen
 		}
 	}
 
-	public static ConsoleKeyInfo ReadKey() => Console.KeyAvailable ? Console.ReadKey() : default;
+	public static ConsoleKeyInfo WaitKey() => Console.ReadKey(intercept: true);
 
-	public static async Task ScreenFuncSystem(GameState gameRunningState)
+	public static async Task ScreenFuncSystem(GameState gameRunningState, GameSettings gameSettings)
 	{
+		var args = new GamePrepareArgs(gameSettings);
+		hstate = GameState.HomeScreenState.Choosegamemode;
 
 		while (hstate is GameState.HomeScreenState.Choosegamemode)
 		{
-			Console.Clear();
 			PrintHomeScreen();
-			var tkey = ReadKey().Key;
-			_ = tkey switch
+
+			var tkey = WaitKey().Key;
+			hstate = tkey switch
 			{
-				ConsoleKey.D1 => await GameStart.ChooseGameMode(),
-				ConsoleKey.D2 => await GameSetMenu.SetMenu(),
+				ConsoleKey.D1 => await GameStart.ChooseGameMode(args),
+				ConsoleKey.D2 => await GameSetMenu.SetMenu(args),
 				ConsoleKey.D3 => await GameExitGame.ExitGame(gameRunningState),
 				_ => hstate
 			};
 		}
 	}
 }
-

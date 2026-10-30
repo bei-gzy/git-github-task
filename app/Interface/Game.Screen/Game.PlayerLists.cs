@@ -1,18 +1,35 @@
-using Game.Register;
-namespace Game.Screen;
+using App.World;
 
-public class PlayerLists
+namespace App.Game.Screen;
+
+//房间座位表：0.8 联机建房/加入时用，现在本机双人也会过一遍
+class RoomPlayerLists
 {
-	public List<Player> Players { get; private set; } = [];
+	public const int PlayerMaxCount = 2;
 
-	const int PlayerMaxCount = 2;
+	readonly List<Player> players = [];
 
-	public void AddPlayer(Player player)
+	public IReadOnlyList<Player> Players => players;
+
+	public int Count => players.Count;
+
+	public bool IsFull => players.Count >= PlayerMaxCount;
+
+	public bool AddPlayer(Player player)
 	{
-		Players.Add(player);
-		if (Players.Count is PlayerMaxCount)
+		if (IsFull)
 		{
 			Console.WriteLine("人数已满！");
+			return false;
 		}
+
+		if (players.Contains(player)) return false;
+
+		players.Add(player);
+		return true;
 	}
+
+	public bool RemovePlayer(Player player) => players.Remove(player);
+
+	public void Clear() => players.Clear();
 }

@@ -1,11 +1,26 @@
-<Project Sdk = "Microsoft.NET.Sdk">
-<PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net11.0</TargetFramework>
-        <RootNamespace>App</RootNamespace>
-        <AssemblyName>app</AssemblyName>
-        <AssemblyVersion>1.0.0</AssemblyVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <RootNamespace>App</RootNamespace>
+    <AssemblyName>app</AssemblyName>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.27.2" />
+    <PackageReference Include="Grpc.Tools" Version="2.65.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="app.proto" GrpcServices="None" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Config/GameSettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
