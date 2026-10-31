@@ -14,14 +14,14 @@ public sealed class GameWorld
 	public GameWorld(GameSettings gameSettings)
 	{
 		this.gameSettings = gameSettings;
-		random = new Random();
+		random = new Random(1883);
 		GameDurationSeconds = gameSettings.GameDurationSeconds;
 		TickMilliseconds = gameSettings.TickMilliseconds;
 		Width = gameSettings.MapConfig.GameMapWidth;
 		Height = gameSettings.MapConfig.GameMapHeight;
 
 		BuildWalls();
-		FillFood();
+		GenerateFood();
 	}
 
 	//地图
@@ -31,14 +31,13 @@ public sealed class GameWorld
 
 	public int Height { get; private set; }
 
-	/// <summary>菜单里改地图尺寸用；会重建围墙并清空食物</summary>
 	public void Resize(int width, int height)
 	{
 		Width = Math.Max(10, width);
 		Height = Math.Max(10, height);
 		BuildWalls();
 		Foods.Clear();
-		FillFood();
+		GenerateFood();
 	}
 
 	void BuildWalls()
@@ -55,11 +54,7 @@ public sealed class GameWorld
 
 	public bool IsWall(int x, int y) => x < 0 || y < 0 || x >= Width || y >= Height || Walls[y, x];
 
-	public void PrintMap()
-	{
-		if (LocalPlayer is null) return;
-		MapPrinter.PrintMap(this, LocalPlayer.MSnake);
-	}
+	public void PrintMap() => MapPrinter.PrintMap(this, players);
 	//食物
 	List<FoodItem> Foods { get; } = [];
 
@@ -84,30 +79,25 @@ public sealed class GameWorld
 		if (timeLose.TotalSeconds < gameSettings.FoodConfig.GenerateFoodSeconds)
 			return;
 		timeLose = TimeSpan.Zero;
-		FillFood();
-	}
-
-	void FillFood()
-	{
-		while (Foods.Count < FoodTarget)
-		{
-			int before = Foods.Count;
-			GenerateFood();
-			if (Foods.Count == before) return;//地图塞不下了，别死循环
-		}
+		GenerateFood();
 	}
 
 	public void GenerateFood()
 	{
-		for (int guard = 0; guard < Width * Height; guard++)//总次数
+		while (Foods.Count < FoodTarget)
 		{
-			int x = random.Next(1, Math.Max(2, Width - 1));
-			int y = random.Next(1, Math.Max(2, Height - 1));
-			if (IsWall(x, y) || FoodAt(x, y) is not null)
-				continue;
-			Foods.Add(new FoodItem(new State.Point(x, y), 1));
-			return;
+			for (int guard = 0; guard < Width * Height; guard++)//总次数
+			{
+				int x = random.Next(1, Math.Max(2, Width - 1));
+				int y = random.Next(1, Math.Max(2, Height - 1));
+				if (IsWall(x, y) || FoodAt(x, y) is not null)
+					continue;
+				Foods.Add(new FoodItem(new State.Point(x, y), 1));
+				break;
+			}
 		}
+
+		if (Foods.Count == FoodTarget) return;
 	}
 
 	public void RemoveFood(int x, int y) => Foods.RemoveAll(food => food.Position.X == x && food.Position.Y == y);
@@ -148,13 +138,6 @@ public sealed class GameWorld
 
 	public Player? FindPlayer(string id) => players.FirstOrDefault(p => p.Id == id);
 
-	/// <summary>开新一局前清空玩家，由 GamePrepareArgs 重新注册当前账号</summary>
-	public void ResetPlayers()
-	{
-		players.Clear();
-		LocalPlayer = null;
-	}
-
 	//状态
 	public bool IsOver { get; private set; }
 
@@ -173,15 +156,15 @@ public sealed class GameWorld
 		Tick = 0;
 		IsOver = false;
 		QuitRequired = false;
-
 		foreach (var player in players)
 			player.ResetForNewGame();
-
+		players.Clear();
+		LocalPlayer = null;
 		Foods.Clear();
-		FillFood();
+		GenerateFood();
 	}
 
-	//只读快照：给渲染器，以后也给网络层
+	//只读快照
 	public WorldSnapShot Snapshot()
 	{
 		var playerSnapshots = new List<PlayerSnapShot>(players.Count);

@@ -2,7 +2,6 @@ using App.World;
 
 namespace App.KeyBoard;
 
-/// <summary>Esc 退出：单人和双人共用一个订阅，别让每个方向控制器各判一次</summary>
 class QuitController(Button button, GameWorld world)
 {
 	public void Begin()

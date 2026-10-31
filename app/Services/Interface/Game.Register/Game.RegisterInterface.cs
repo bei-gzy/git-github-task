@@ -4,17 +4,17 @@ namespace App.Game.Register;
 
 class PlayerRegisterInterface
 {
-	internal static List<Player> PlayerLists = [];
+	internal static List<Player> PlayerLists = [];//注册游戏的玩家名单
 
 	internal static Player? CurrentPlayer { get; private set; }
 
-	static bool IsSetPlaeyerName { get; set; } = false;
+	static bool IsSetPlayerName { get; set; } = false;
 
 	public static bool PrintPlayerRegisterInterface()
 	{
 		Console.WriteLine("欢迎来到贪吃蛇游戏！");
 
-		while (!IsSetPlaeyerName)
+		while (!IsSetPlayerName)
 		{
 			Console.WriteLine("请为你的贪吃蛇设置一个名字： ");
 			string? playername = Console.ReadLine()?.Trim();
@@ -32,13 +32,13 @@ class PlayerRegisterInterface
 			}
 
 			Console.WriteLine("已将你的名字已设置为：" + playername);
-			var a = new Player(Guid.NewGuid().ToString("N")[..8]);
+			var a = new Player(Guid.NewGuid().ToString("N")[..8]);//随机id--ai牛
 			a.SetName(playername);
 			PlayerLists.Add(a);
 			CurrentPlayer = a;
 			break;
 		}
 
-		return IsSetPlaeyerName = true;
+		return IsSetPlayerName = true;
 	}
 }

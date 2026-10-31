@@ -13,15 +13,9 @@ class RoomPlayerLists
 
 	public int Count => players.Count;
 
-	public bool IsFull => players.Count >= PlayerMaxCount;
-
 	public bool AddPlayer(Player player)
 	{
-		if (IsFull)
-		{
-			Console.WriteLine("人数已满！");
-			return false;
-		}
+		if (players.Count > PlayerMaxCount) return false;
 
 		if (players.Contains(player)) return false;
 

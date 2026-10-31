@@ -5,7 +5,7 @@ namespace App.GameTime;
 //游戏时长预设：设置菜单和以后可能的联机房间共用同一份
 static class SetTime
 {
-	public static readonly (ConsoleKey Key, char Digit, double Seconds, string Label)[] Options =
+	public static readonly (ConsoleKey Key, char Digit, double Seconds, string Label)[] Options =//超绝元zu
 	[
 		(ConsoleKey.D1, '1', 60.0, "一分钟"),
 		(ConsoleKey.D2, '2', 180.0, "三分钟"),
@@ -20,7 +20,6 @@ static class SetTime
 			Console.WriteLine($"{digit}、{label}");
 	}
 
-	/// <summary>按键命中预设就写进世界，返回是否改了</summary>
 	public static bool Apply(GameWorld world, ConsoleKey key)
 	{
 		foreach (var (optionKey, _, seconds, _) in Options)

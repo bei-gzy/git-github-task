@@ -16,10 +16,7 @@ class GameRegisterSystem : PlayerRegisterInterface
 
 	public static async Task<bool> Register()
 	{
-		//注册
-		bool waitplayername = await Task.Run(PrintPlayerRegisterInterface);
-
-		if (waitplayername)
+		if (await Task.Run(PrintPlayerRegisterInterface))
 		{
 			Console.Clear();
 			return true;

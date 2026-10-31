@@ -11,8 +11,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="3.27.2" />
-    <PackageReference Include="Grpc.Tools" Version="2.65.0" PrivateAssets="All" />
+    <PackageReference Include="Google.Protobuf" Version="3.36.2" />
+    <PackageReference Include="Grpc.Tools" Version="2.85.0" PrivateAssets="All" />
+	<PackageReference Include="MQTTnet" Version="5.2.0.1603" />
   </ItemGroup>
 
   <ItemGroup>

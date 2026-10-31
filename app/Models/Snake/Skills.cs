@@ -8,7 +8,7 @@ public class Skills
 {
 	const double CooldownSeconds = 5.0;
 
-	double lastDashAt = double.NegativeInfinity;
+	double lastDashAt = double.NegativeInfinity;//负无穷，保证冷却已经结束
 
 	public void Reset() => lastDashAt = double.NegativeInfinity;
 
@@ -16,15 +16,15 @@ public class Skills
 	{
 		if (!p.IsAlive) return;
 
-		double now = world.ElapsedTime.TotalSeconds;
-		bool dashReady = now - lastDashAt >= CooldownSeconds;
-
-		if (p.IsTouchButton && dashReady)
+		if (p.IsTouchButton && world.ElapsedTime.TotalSeconds - lastDashAt >= CooldownSeconds)
 		{
 			p.IsTouchButton = false;
-			lastDashAt = now;
-			Move(p);
-			Move(p);//冲刺这一帧连走两格
+			lastDashAt = world.ElapsedTime.TotalSeconds;
+			for (int i = 0; i < 2; i++)
+			{
+				Move(p);
+			}
+
 			return;
 		}
 

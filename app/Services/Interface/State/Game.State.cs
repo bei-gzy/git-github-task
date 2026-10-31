@@ -4,14 +4,6 @@ public class GameState
 {
 	public GameOnAndOffState GameRunningState { get; set; } = GameOnAndOffState.GameOn;
 
-	public enum InterfaceState
-	{
-		ChoosingMode,
-		SinglePlayerMode,
-		MultiPlayerMode,
-		ExitMode,
-	}
-
 	public enum HomeScreenState
 	{
 		Choosegamemode,

@@ -13,24 +13,23 @@ class GameSetMenu : HomeScreen
 			Console.WriteLine();
 			Console.Write("请选择：");
 
-			switch (WaitKey().Key)
+			Action? action = WaitKey().Key switch
 			{
-				case ConsoleKey.D1:
-					ChangeMapSize(args);
-					break;
-				case ConsoleKey.D2:
-					ChangeSpeed(args);
-					break;
-				case ConsoleKey.D3:
-					ChangeDuration(args);
-					break;
-				case ConsoleKey.D4:
-					Rename(args);
-					break;
-				case ConsoleKey.D5:
-					return Task.FromResult(hstate = GameState.HomeScreenState.Choosegamemode);
-				default:
-					break;
+				ConsoleKey.D1 => () => ChangeMapSize(args),
+				ConsoleKey.D2 => () => ChangeSpeed(args),
+				ConsoleKey.D3 => () => ChangeDuration(args),
+				ConsoleKey.D4 => () => Rename(args),
+				_ => null
+			};
+
+			if (action is null)
+			{
+				if (Console.KeyAvailable)
+					continue;
+			}
+			else
+			{
+				action();
 			}
 		}
 	}
@@ -43,10 +42,10 @@ class GameSetMenu : HomeScreen
 		string[] choice =
 		[
 			"—————设置菜单—————",
-			$"1、设置地图大小（当前 {world.Width} × {world.Height}）",
-			$"2、设置初始速度（当前 {world.TickMilliseconds} 毫秒/格）",
-			$"3、设置游戏时间（当前 {world.GameDurationSeconds} 秒）",
-			$"4、修改名字（当前 {args.Player.Name}）",
+			$"1、设置地图大小(当前 {world.Width}, {world.Height})",
+			$"2、设置初始速度(当前 {world.TickMilliseconds} 毫秒/格）",
+			$"3、设置游戏时间(当前 {world.GameDurationSeconds} 秒）",
+			$"4、修改名字(当前 {args.Player.Name})",
 			"5、退出设置菜单"
 		];
 
@@ -59,7 +58,7 @@ class GameSetMenu : HomeScreen
 	static void ChangeMapSize(GamePrepareArgs args)
 	{
 		Console.Clear();
-		Console.WriteLine("1、小地图 20×25　2、中地图 25×30　3、大地图 35×40");
+		Console.WriteLine("1、小地图 20×25 2、中地图 25×30 3、大地图 35×40");
 		Console.Write("请选择：");
 
 		var (width, height) = WaitKey().Key switch
@@ -77,7 +76,7 @@ class GameSetMenu : HomeScreen
 	static void ChangeSpeed(GamePrepareArgs args)
 	{
 		Console.Clear();
-		Console.WriteLine("1、慢 300ms　2、正常 200ms　3、快 150ms　4、极快 100ms");
+		Console.WriteLine("1、慢 300ms 2、正常 200ms 3、快 150ms 4、极快 100ms");
 		Console.Write("请选择：");
 
 		int speed = WaitKey().Key switch
@@ -93,7 +92,6 @@ class GameSetMenu : HomeScreen
 		Done();
 	}
 
-	//时长预设统一放在 App.GameTime.SetTime 里
 	static void ChangeDuration(GamePrepareArgs args)
 	{
 		Console.Clear();
