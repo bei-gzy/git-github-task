@@ -2,9 +2,16 @@ using App.Config;
 using App.Game.Register;
 using App.Game.Screen;
 using App.GameStates;
+using App.NetWork;
 
 var gameSettings = GameSettingLoader.Load();
 var gameRunningState = new GameState();
+
+var netOptions = NetOptions.Parse(args, gameSettings.NetWorkConfig.RoomId);//args是运行时传进的参数
+if (netOptions.NetMode is not NetMode.None)
+{
+	await NetHost.RunAsync(netOptions);
+}
 
 while (gameRunningState.GameRunningState is GameState.GameOnAndOffState.GameOn)
 {
@@ -14,4 +21,3 @@ while (gameRunningState.GameRunningState is GameState.GameOnAndOffState.GameOn)
 	//大厅：开始游戏、设置菜单、退出
 	await HomeScreen.ScreenFuncSystem(gameRunningState, gameSettings);
 }
-

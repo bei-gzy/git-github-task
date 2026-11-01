@@ -81,30 +81,28 @@ if (args.Contains("--ping")) { await NetPing.RunAsync(args); return; }
 
 ## 3. 阶段 2：网络骨架 + 角色
 
-新增文件与职责：
+> 零基础版教程（含 MQTT 名词解释、逐文件代码、排错表）：
+> **[阶段2-MQTT入门与骨架.md](阶段2-MQTT入门与骨架.md)**
+
+**本阶段只做「连通性」，不接游戏。**
+
+新增文件（都不碰游戏逻辑）：
 
 | 文件 | 职责 |
 | --- | --- |
-| `NetWork/NetHost.cs` | 生命周期：`Start(settings, args)` / `Attach(prepareArgs)`；判定 Host / Client |
-| `NetWork/NetOptions.cs` | 解析 `--host` / `--join <host:port>` / `--room` / `--name` |
-| `NetWork/ProtoCodec.cs` | `WorldSnapShot → GameState`、按键 → `PlayerInput` |
-| `NetWork/SnapshotPump.cs` | **独立 `PeriodicTimer`（100ms）**调 `world.Snapshot()` 发布 |
-| `NetWork/RemoteInput.cs` | `PlayerInput` → 合成 `ConsoleKeyInfo` → `args.Button.TouchClick` |
-| `NetWork/RemoteRenderer.cs` | Client 端：把 `GameState` 画成字符棋盘 |
+| `NetWork/NetOptions.cs` | 解析 `--host` / `--join` / `--ping` / `--broker` / `--room` / `--name` |
+| `NetWork/MqttTransport.cs` | 连接 / 订阅 / 发布 / 收件箱（纯传输） |
+| `NetWork/NetHost.cs` | 三种模式的生命周期：Ping / Host / Client |
 
-**装配（共 3 行）**
+**装配（本阶段只加 1 行）**
 
 ```csharp
 // program.cs
-NetHost.Start(gameSettings, args);          // ①
-if (NetHost.IsClient) { await NetHost.RunClientAsync(); return; }   // ②（客户端不进入游戏主循环）
-
-// GamePrepareArgs 构造函数末尾
-NetHost.Attach(this);                       // ③ 让网络层拿到 world / Button
+var netOptions = NetOptions.Parse(args, gameSettings.NetWorkConfig.RoomId);
+if (netOptions.Mode is not NetMode.None) { await NetHost.RunAsync(netOptions); return; }
 ```
 
-> 关键设计：**网络泵不挂在游戏循环里**，而是自己一个定时器读 `world.Snapshot()`。
-> 这样 `FuncSystem` / `LocalDoubleSystem` **一行都不用改**。
+阶段 3 才会再补 2 行（`NetHost.Attach(args)` + 客户端分支），用来把游戏接进来。
 
 **主题**
 
@@ -114,26 +112,22 @@ NetHost.Attach(this);                       // ③ 让网络层拿到 world / Bu
 | Host → Client | `snake/{room}/state` | 0 |
 | 双向 | `snake/{room}/hello` | 1 |
 
-**验收**：`--host` 打印 `host ready`，`--join` 打印 `joined {room}`，双方日志能看到心跳。
+**验收**：两个终端进同一房间互发 `hello`；换房号收不到；不带参数启动仍是原来的游戏流程。
 
 ---
 
 ## 4. 阶段 3：只读观战（Host → Client 快照）
 
+> 完整实现清单（8 项任务 + 代码 + 验收）见 **[阶段3-快照观战清单.md](阶段3-快照观战清单.md)**
+
 - Host：`SnapshotPump` 每 100ms `world.Snapshot()` → `ProtoCodec.ToProto` → publish `GameState`；
-- Client：`RemoteRenderer` 收 `GameState` → 画 25×30 棋盘（蛇头/蛇身/食物/分数/剩余）；
-- 字段映射（现有 `app.proto` 够用）：
+- Client：`RemoteRender` 收 `GameState` → 画 25×30 棋盘；
+- 装配：`GamePrepareArgs` 构造函数末尾加 1 行 `NetHost.Attach(this);`；
+- pump 用**独立定时器**，不挂在游戏循环里，所以单/双人逻辑零改动。
 
-| 运行时 | proto |
-| --- | --- |
-| `Tick` | `server_tick` |
-| `Players[].Segaments` | `players[].snake_segments` |
-| `Players[].Score / IsAlive / Id` | `score / is_alive / player_id` |
-| `Foods[]` | `foods[]` |
-| `IsOver` | `is_game_over` |
-| `Width/Height/RemainingSeconds` | proto 暂无 → 客户端先写死 25×30 / 不显示 |
+**前置**：先修《阶段3清单》§0 的 3 个已知问题（Guid 格式串、空订阅、Log 没接线）。
 
-**验收**：同学屏幕上能看到你的蛇在动、吃食物、分数变化（只读，不能操作）。
+**验收**：Host 正常玩，Client 终端 100ms 刷新一次画面，蛇动、分数变、结束提示。
 
 ---
 

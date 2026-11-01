@@ -22,16 +22,12 @@ class GameSetMenu : HomeScreen
 				_ => null
 			};
 
-			if (action is null)
-			{
-				if (Console.KeyAvailable)
-					continue;
-			}
-			else
-			{
+			if (action is not null)
 				action();
-			}
+			break;
 		}
+
+		return Task.FromResult(GameState.HomeScreenState.Choosegamemode);
 	}
 
 	static void PrintOptions(GamePrepareArgs args)

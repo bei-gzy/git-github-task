@@ -17,9 +17,7 @@ class FuncSystem//单人模式
 		while (!world.IsOver)
 		{
 			while (Console.KeyAvailable)
-			{
 				args.Button.TouchClick(Console.ReadKey(intercept: true));
-			}
 
 			if (world.QuitRequired) break;
 
@@ -44,7 +42,7 @@ class FuncSystem//单人模式
 		player.RecordSurvivalTime(world.ElapsedTime);
 
 		if (!world.QuitRequired)
-			ShowResult(player, world, died);
+			EndSystem(player, world, died);
 
 		return !world.QuitRequired;
 	}
@@ -70,5 +68,5 @@ class FuncSystem//单人模式
 		}
 	}
 
-	static void ShowResult(Player player, GameWorld world, bool died) => DefeatSystem.Result(player, world, died);
+	static void EndSystem(Player player, GameWorld world, bool died) => DefeatSystem.Result(player, world, died);
 }

@@ -6,7 +6,6 @@ namespace App.World;
 
 public static class MapPrinter
 {
-	// 每个玩家一套符号，超出 4 个循环使用
 	static readonly (char Head, char Body)[] Styles =
 	[
 		('☻', '◊'), ('☺', '○'), ('♥', '♦'), ('★', '☆')
@@ -14,9 +13,9 @@ public static class MapPrinter
 
 	public static void PrintMap(GameWorld world, IReadOnlyList<Player> players)
 	{
-		var bodies = new HashSet<State.Point>[players.Count];
+		var bodies = new HashSet<State.Point>[players.Count];//把身体的各点封装成去重哈希集合
 		for (int i = 0; i < players.Count; i++)
-			bodies[i] = [.. players[i].MSnake.Snake];
+			bodies[i] = [.. players[i].MSnake.Snake];//new HashSet<State.Point>(~~)
 
 		var sb = new StringBuilder(world.Width * world.Height + world.Height);
 		for (int y = 0; y < world.Height; y++)
@@ -54,10 +53,10 @@ public static class MapPrinter
 			var p = players[i];
 			char head = Styles[i % Styles.Length].Head;
 			string name = string.IsNullOrWhiteSpace(p.Name) ? $"玩家{i + 1}" : p.Name;
-			Console.WriteLine($"{head} {name}: {p.MScore.MyScore} 分　长度 {p.MSnake.Snake.Count}　{(p.IsAlive ? "存活" : "死亡")}");
+			Console.WriteLine($"{head} {name}: {p.MScore.MyScore} 分 长度 {p.MSnake.Snake.Count} {(p.IsAlive ? "存活" : "死亡")}");
 		}
 
 		double left = Math.Max(0, world.GameDurationSeconds - world.ElapsedTime.TotalSeconds);
-		Console.WriteLine($"剩余 {left:F0} 秒　食物 {world.FoodNum} 个");
+		Console.WriteLine($"剩余 {left:F0} 秒 食物 {world.FoodNum} 个");
 	}
 }

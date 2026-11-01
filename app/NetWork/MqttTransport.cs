@@ -9,7 +9,7 @@ namespace App.NetWork;
 //包的内容：主题+载荷
 public readonly record struct MqttMessage(string Topic, byte[] PayLoad);
 
-//------------------------------------传输层类-----------------------------------
+//------------------------------------传输层类(收发装置）-----------------------------------
 public sealed class MqttTransport : IAsyncDisposable
 {
 	readonly IMqttClient client;
@@ -63,7 +63,7 @@ public sealed class MqttTransport : IAsyncDisposable
 		//等待异步连接（调用）--提示成功
 		var result = await client.ConnectAsync(options, timeout.Token);
 
-		if (!result.IsSessionPresent)
+		if (result.ResultCode is not MqttClientConnectResultCode.Success)
 		{
 			Log?.Invoke($"[mqtt]未连接 {host}:{port} clientID = {clientID}");
 			return;
@@ -127,7 +127,19 @@ public sealed class MqttTransport : IAsyncDisposable
 	}
 
 	//接收
-	public bool TryReceive(out MqttMessage message) => inbox.TryDequeue(out message);
+	public bool TryReceive(out string topic, out byte[] payload)
+	{
+		if (inbox.TryDequeue(out var item))
+		{
+			topic = item.Topic;
+			payload = item.PayLoad;
+			return true;
+		}
+
+		topic = "";
+		payload = [];
+		return false;
+	}
 
 	public async ValueTask DisposeAsync()
 	{
@@ -142,4 +154,12 @@ public sealed class MqttTransport : IAsyncDisposable
 	}
 }
 
-//反序列化 字节数组 --> 对象
+/*
+                    ┌──────────── MqttTransport（收发室）────────────┐
+  你的游戏主循环 ──▶ │ PublishAsync ──▶ client（快递员）──▶ Broker    │
+                    │                                             │
+  你的游戏主循环 ◀── │ TryReceive ◀── inbox（收件箱传送带）◀── client │
+                    └─────────────────────────────────────────────┘
+                                        ▲
+                        后台回调线程 ApplicationMessageReceivedAsync
+*/
