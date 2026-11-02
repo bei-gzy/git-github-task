@@ -54,13 +54,10 @@ public sealed class GameWorld
 
 	public bool IsWall(int x, int y) => x < 0 || y < 0 || x >= Width || y >= Height || Walls[y, x];
 
-	public void PrintMap() => MapPrinter.PrintMap(this, players);
 	//食物
 	List<FoodItem> Foods { get; } = [];
 
 	public int FoodTarget => gameSettings.FoodConfig.GenerateFoodCount;
-
-	public int FoodNum => Foods.Count;
 
 	public FoodItem? FoodAt(int x, int y)
 	{

@@ -17,7 +17,7 @@ public sealed record PlayerSnapShot
 (
 	string Id,
 	string Name,
-	IReadOnlyList<State.Point> Segaments,
+	IReadOnlyList<State.Point> Segments,
 	int Score,
 	bool IsAlive,
 	State.Direction Direction

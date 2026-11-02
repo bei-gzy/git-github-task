@@ -30,6 +30,8 @@ message PlayerState {
   repeated Point snake_segments = 2;
   int32 score = 3;
   bool is_alive = 4;
+  string name = 5;
+  Direction direction = 6;
 }
 
 message FoodState {
@@ -43,4 +45,7 @@ message GameState {
   repeated PlayerState players = 3;
   repeated FoodState foods = 4;
   bool is_game_over = 5;
+  int32 width = 6;
+  int32 height = 7;
+  double remaining_seconds = 8;
 }

@@ -1,3 +1,5 @@
+using App.Config;
+using App.Protocol;
 using App.Services;
 
 using System.Text;
@@ -8,55 +10,118 @@ public static class MapPrinter
 {
 	static readonly (char Head, char Body)[] Styles =
 	[
-		('☻', '◊'), ('☺', '○'), ('♥', '♦'), ('★', '☆')
+		('@', 'o'), ('O', 'x'), ('S', '+'), ('M', '=')
 	];
 
-	public static void PrintMap(GameWorld world, IReadOnlyList<Player> players)
-	{
-		var bodies = new HashSet<State.Point>[players.Count];//把身体的各点封装成去重哈希集合
-		for (int i = 0; i < players.Count; i++)
-			bodies[i] = [.. players[i].MSnake.Snake];//new HashSet<State.Point>(~~)
+	const char Wall = '#';
+	const char Food = '*';
 
-		var sb = new StringBuilder(world.Width * world.Height + world.Height);
-		for (int y = 0; y < world.Height; y++)
+	public static void PrintMap(WorldSnapShot ws)
+	{
+		var bodies = new HashSet<State.Point>[ws.Players.Count];
+		for (int i = 0; i < ws.Players.Count; i++)
+			bodies[i] = [.. ws.Players[i].Segments];
+
+		var sb = new StringBuilder(ws.Width * ws.Height + ws.Height);
+
+		for (int y = 0; y < ws.Height; y++)
 		{
-			for (int x = 0; x < world.Width; x++)
+			for (int x = 0; x < ws.Width; x++)
 			{
-				if (world.IsWall(x, y)) { _ = sb.Append('█'); continue; }
+				char c = (y == 0 || x == 0 || x == ws.Width - 1 || y == ws.Height - 1) ? Wall : ' ';
 
 				var pt = new State.Point(x, y);
-				char c = ' ';
-				for (int i = 0; i < players.Count; i++)
-				{
-					var p = players[i];
-					if (!p.IsAlive) continue;
-					var (head, body) = Styles[i % Styles.Length];
-					if (p.MSnake.Head == pt) { c = head; break; }
 
+				for (int i = 0; i < ws.Players.Count; i++)
+				{
+					var p = ws.Players[i];
+					if (!p.IsAlive) continue;
+
+					var (head, body) = Styles[i % Styles.Length];
+
+					if (p.Segments.Count > 0 && p.Segments[^1] == pt) { c = head; break; }
 					if (bodies[i].Contains(pt)) { c = body; break; }
 				}
 
-				if (c == ' ' && world.FoodAt(x, y) is not null) c = '✰';
-				_ = sb.Append(c);
+				if (c == ' ')
+				{
+					foreach (var f in ws.Foods)
+					{
+						if (f.Position == pt) { c = Food; break; }
+					}
+				}
+
+				sb.Append(c);
 			}
 
-			_ = sb.AppendLine();
+			sb.AppendLine();
 		}
 
 		Console.Write(sb.ToString());
 	}
 
-	public static void PrintHud(GameWorld world, IReadOnlyList<Player> players)
+	public static void PrintHud(WorldSnapShot ws)
 	{
-		for (int i = 0; i < players.Count; i++)
+		for (int i = 0; i < ws.Players.Count; i++)
 		{
-			var p = players[i];
+			var p = ws.Players[i];
 			char head = Styles[i % Styles.Length].Head;
-			string name = string.IsNullOrWhiteSpace(p.Name) ? $"玩家{i + 1}" : p.Name;
-			Console.WriteLine($"{head} {name}: {p.MScore.MyScore} 分 长度 {p.MSnake.Snake.Count} {(p.IsAlive ? "存活" : "死亡")}");
+			string name = string.IsNullOrWhiteSpace(p.Name) ? $"P{i + 1}" : p.Name;
+			Console.WriteLine($"[{head}] {name} 分数 {p.Score} 长度 {p.Segments.Count} {(p.IsAlive ? "存活" : "死亡")}");
 		}
 
-		double left = Math.Max(0, world.GameDurationSeconds - world.ElapsedTime.TotalSeconds);
-		Console.WriteLine($"剩余 {left:F0} 秒 食物 {world.FoodNum} 个");
+		Console.WriteLine($"剩余 {ws.RemainingSeconds:F0} 秒 食物 {ws.Foods.Count} 个");
 	}
+
+	public static void Draw(GameState state)
+	{
+		var ws = ToSnapshot(state);
+
+		Console.Clear();
+		Console.WriteLine($"--- 房间 {state.RoomId}  tick {state.ServerTick} ---");
+		PrintMap(ws);
+		PrintHud(ws);
+
+		if (state.IsGameOver)
+			Console.WriteLine("[对局结束]");
+	}
+
+	static WorldSnapShot ToSnapshot(GameState s)
+	{
+		int w = s.Width;
+		int h = s.Height;
+
+		if (w <= 0 || h <= 0)
+		{
+			var settings = GameSettingLoader.Load();
+			w = settings.MapConfig.GameMapWidth;
+			h = settings.MapConfig.GameMapHeight;
+		}
+
+		return new WorldSnapShot(
+			s.ServerTick,
+			w,
+			h,
+			[.. s.Players.Select(p => new PlayerSnapShot(
+				p.PlayerId,
+				p.Name,
+				[.. p.SnakeSegments.Select(pt => new State.Point(pt.X, pt.Y))],
+				p.Score,
+				p.IsAlive,
+				FromProtoDirection(p.Direction)))],
+			[.. s.Foods.Select(f => new FoodSnapShot(
+				new State.Point(f.Position.X, f.Position.Y),
+				f.FoodType))],
+			s.RemainingSeconds,
+			s.IsGameOver);
+	}
+
+	static State.Direction FromProtoDirection(Direction d) => d switch
+	{
+		Direction.Up => State.Direction.Up,
+		Direction.Down => State.Direction.Down,
+		Direction.Left => State.Direction.Left,
+		Direction.Right => State.Direction.Right,
+		_ => State.Direction.Down
+	};
 }

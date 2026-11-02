@@ -53,8 +53,8 @@ class FuncSystem//单人模式
 		Console.WriteLine("——————————————Welcome TO Snake Eat Game——————————————");
 		Console.WriteLine("法则:WASD控制方向,E加速(冷却5秒),Esc退出游戏");
 		Console.WriteLine();
-		MapPrinter.PrintMap(world, world.Players);
-		MapPrinter.PrintHud(world, world.Players);
+		MapPrinter.PrintMap(world.Snapshot());
+		MapPrinter.PrintHud(world.Snapshot());
 	}
 
 	static void Collision(GamePrepareArgs args)

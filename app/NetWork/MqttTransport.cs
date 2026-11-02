@@ -17,7 +17,7 @@ public sealed class MqttTransport : IAsyncDisposable
 	readonly ConcurrentQueue<MqttMessage> inbox = new();
 	readonly string clientID;
 
-	//-----Log委托------
+	//-----Log委托(日志)------
 	public Action<string>? Log { get; set; }
 
 	//构造函数内付出值委托人、包箱、委托人ID
@@ -37,16 +37,20 @@ public sealed class MqttTransport : IAsyncDisposable
 		};
 
 		//连接失败的反馈
-		client.ApplicationMessageReceivedAsync += e =>
+		client.DisconnectedAsync += e =>
 		{
-			Log?.Invoke($"[mqtt]断开： {e.ReasonCode}");
+			Log?.Invoke($"[mqtt]断开： {e.Reason}");
+			if (e.Exception is not null)
+				Log?.Invoke($"[mqtt]原因:{e.Exception.Message}");
 			return Task.CompletedTask;
 		};
 	}
 
-	//异步连接进程
-	//委托人（host地址，port端口，CancellationToken default外部取消令牌）Broker的数据
-	public async Task ConnectAsync(string host, int port, TimeSpan? keepAlive = null, CancellationToken ct = default)
+	//是否真的连上（Host 用它决定要不要进游戏）
+	public bool IsConnected => client.IsConnected;
+
+	//异步连接：返回是否成功，连不上只打日志，不抛异常
+	public async Task<bool> ConnectAsync(string host, int port, TimeSpan? keepAlive = null, CancellationToken ct = default)
 	{
 		//连接选项，构建拼出MqttClientptions对象
 		var options = new MqttClientOptionsBuilder()
@@ -60,17 +64,27 @@ public sealed class MqttTransport : IAsyncDisposable
 		using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
 		timeout.CancelAfter(TimeSpan.FromSeconds(8));
 
-		//等待异步连接（调用）--提示成功
-		var result = await client.ConnectAsync(options, timeout.Token);
-
-		if (result.ResultCode is not MqttClientConnectResultCode.Success)
+		try
 		{
-			Log?.Invoke($"[mqtt]未连接 {host}:{port} clientID = {clientID}");
-			return;
+			var result = await client.ConnectAsync(options, timeout.Token);
+
+			if (result.ResultCode is not MqttClientConnectResultCode.Success)
+			{
+				Log?.Invoke($"[mqtt]连接失败 {host}:{port} -> {result.ResultCode}");
+				return false;
+			}
+		}
+		catch (Exception ex)
+		{
+			//Connection refused = 端口没人监听；超时 = 网络或防火墙
+			Log?.Invoke($"[mqtt]连不上 {host}:{port}：{ex.InnerException?.Message ?? ex.Message}");
+			Log?.Invoke("[mqtt]检查：broker 起了吗？端口对吗？本机没有 broker 时可用 --broker broker.emqx.io:1883");
+			return false;
 		}
 
 		//记录
 		Log?.Invoke($"[mqtt]已连接 {host}:{port} clientID = {clientID}");
+		return true;
 	}
 
 	//订阅
@@ -148,9 +162,10 @@ public sealed class MqttTransport : IAsyncDisposable
 			if (client.IsConnected)
 				await client.DisconnectAsync();
 		}
-		catch { }
-
-		client.Dispose();//丢弃无用的订阅
+		catch
+		{
+			client.Dispose();//丢弃无用的订阅
+		}
 	}
 }
 

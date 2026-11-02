@@ -5,13 +5,14 @@ using App.GameCollision;
 using App.KeyBoard;
 using App.Config;
 using App.World;
+using App.NetWork;
 
 namespace App.Game.Screen;
 
 class GamePrepareArgs
 {
 	//登录时创建的账号，每局都用同一个对象
-	readonly Player account;
+	readonly Player local;
 
 	readonly QuitController quit;
 
@@ -36,19 +37,20 @@ class GamePrepareArgs
 
 	public GamePrepareArgs(GameSettings gameSettings)
 	{
-		account = PlayerRegisterInterface.CurrentPlayer ?? new Player("local");
+		local = PlayerRegisterInterface.CurrentPlayer ?? new Player("local");
 		GameWorld = new GameWorld(gameSettings);
-		Player = account;
+		Player = local;
 
 		LocalInput = new KeyBoardController(Button, Player, KeyLayout.Wasd, ConsoleKey.E);
 		quit = new QuitController(Button, GameWorld);
 		CollisionController = new CollisionController(Collision);
+		NetHost.Attach(GameWorld);
 	}
 
 	public void BeginRound()
 	{
 		GameWorld.Restart();
-		Player = GameWorld.AddPlayer(account, isLocal: true);
+		Player = GameWorld.AddPlayer(local, isLocal: true);
 		LocalInput.Begin(State.Direction.Down);
 		quit.Begin();
 		CollisionController.Subscribe();

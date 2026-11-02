@@ -1,213 +1,168 @@
-# 联机实施计划（路线 C：主机权威 + MQTT/protobuf）
+# 联机实施计划（2026-11-02 · P0 已完成）
 
-> 目标形态：**你的机器当主机**（跑唯一一份 `GameWorld`），同学 `git clone` 后在自己的终端跑客户端（只发按键、只画快照）。
-> 代码改动策略：**只新增 `NetWork/` 目录，外加 3 行装配**，单人/本机双人的业务逻辑一行不动。
-
----
-
-## 0. 拓扑与前提
-
-```text
-你的机器 (Host)                          同学的机器 (Client)
-├─ GameWorld（权威、唯一）               ├─ 不跑模拟
-├─ LocalDoubleSystem（p2 由远端控制）    ├─ 收 GameState → 画棋盘
-└─ MQTT 客户端 ──► broker ◄── MQTT 客户端 ┘  发 PlayerInput
-```
-
-**联机的本质 = 你开「本机双人」模式，但玩家2 的键盘来自网络。**
-这样完全复用现有代码：`LocalDoubleSystem` 里 p2 已经存在，只需要把远端按键合成 `ConsoleKeyInfo` 喂给 `Button.TouchClick`。
-
-**broker 三选一（先 A，跑通再考虑 B/C）**
-
-| 方案 | 地址 | 优点 | 缺点 |
-| --- | --- | --- | --- |
-| A. 公网公共 broker（推荐起步） | `broker.emqx.io:1883` 或 `test.mosquitto.org:1883` | 零安装、跨公网、不用端口映射 | 公开环境，必须用随机房间号 |
-| B. 你本机跑 mosquitto | `你的公网IP:1883` | 私密、可控 | 要装 broker + 防火墙/端口映射；家里宽带多为 NAT |
-| C. 内网穿透 + WebSocket | `wss://xxx.trycloudflare.com/mqtt` | 免端口映射、可走 443 | 要配 tunnel，MQTT 用 8083/WS |
-
-> 公共 broker 上**一定不要用 `room1`**：房间号用 `snake-` + 6 位随机串（例如 `snake-7f3k2a`），同学们手输同一个。
+> 阶段 2/3 的教程仍然有效；本文记录**当前真实进度**和剩余任务。
+> 上一版（18:21）已过期：P0 全部完成，proto 字段也已按方案 B 加上。
 
 ---
 
-## 1. 阶段 0：先让「别人能跑起来」（最容易翻车的一步）
+## 0. 现在到哪一步
 
-当前 `app.csproj` 是 `net11.0` + 你本机 SDK `11.0.100-rc.1`。同学没装这个 **预览版 SDK** 时，`dotnet run` 直接失败。
+**构建：✅ 0 错误 0 警告**
 
-**两种解法（选一）**
-
-| 做法 | 改动 | 适合 |
+| 文件 | 状态 | 说明 |
 | --- | --- | --- |
-| 降到 `net8.0`（LTS） | `csproj` 里 `TargetFramework` 一行 | 最稳，`MQTTnet 5.2`、`Google.Protobuf 3.36.2`、`Grpc.Tools 2.85.0` 都有 net8.0 资产 |
-| 让大家装 .NET 11 SDK | 加 `global.json` 锁定版本 | 想保持 net11 |
+| `NetWork/MqttTransport.cs` | ✅ | 连接 / 订阅（带 topics）/ 发布 / 收件箱 / Log / Dispose |
+| `NetWork/NetOptions.cs` | ✅ | `--host/--join/--ping/--broker/--room/--name` |
+| `NetWork/NetHost.cs` | ✅ | P0-2 守卫、P0-3 Host 不阻塞，已修 |
+| `NetWork/ProtoCodec.cs` | ✅ | `ToProto` / `FromProto` 对称，含枚举显式映射 |
+| `NetWork/SnapShotPump.cs` | ⚠️ | `RunAsync` 可用；`Dispose` 仍抛 NotImplementedException（P1-2） |
+| `NetWork/RemoteRender.cs` | ⚠️ | 已接线，但绘制逻辑有 bug（P1-1） |
+| `NetWork/RemoteInput.cs` | ⏳ | 空壳，阶段 4 才写 |
+| `Services/.../Game.Args.cs` | ✅ | 已调用 `NetHost.Attach(GameWorld)` |
+| `program.cs` | ✅ | P0-4 已补 return |
 
-建议再加一个 `global.json`（避免同学机器上 SDK 版本漂移）：
-
-```json
-{ "sdk": { "version": "8.0.100", "rollForward": "latestFeature" } }
-```
-
-**验收**：同学机器上 `git clone` → `dotnet run` 能看到登录界面。
-
----
-
-## 2. 阶段 1：先验证「联机」本身（不碰游戏逻辑）
-
-**目标**：两台机器通过 MQTT 互发一条消息，证明网络链路通。
-
-新增文件：
-
-```text
-NetWork/
- ├─ MqttTransport.cs   // 直接照 snake/NetWork/MqttTransport.cs 搬（改命名空间）
- └─ NetPing.cs         // --ping 模式：发 hello / 收 hello
-```
-
-`csproj` 增加：
-
-```xml
-<PackageReference Include="MQTTnet" Version="5.2.0.1603" />
-```
-
-`program.cs` 最前面加分流（**装配第 1 行**）：
-
-```csharp
-if (args.Contains("--ping")) { await NetPing.RunAsync(args); return; }
-```
-
-**验收**：你发 `hello`，同学终端打印出来；反向也通。
-**主题**：`snake/{room}/hello`。
+**已实测**：`--host` 能连上 broker、打印 `[mqtt]已连接` / `[mqtt] 订阅`、打印 Host 就绪，并正常进入登录界面。
 
 ---
 
-## 3. 阶段 2：网络骨架 + 角色
+## 1. P0 修复记录（已完成，留档）
 
-> 零基础版教程（含 MQTT 名词解释、逐文件代码、排错表）：
-> **[阶段2-MQTT入门与骨架.md](阶段2-MQTT入门与骨架.md)**
+### P0-1 删掉 ProtoCodec.ToP ✅
 
-**本阶段只做「连通性」，不接游戏。**
+- `ToP` 用了 `GameState { [..集合] }` 这种非法写法，已删除；
+- 同时把 `ToProto` 重写成和 `FromProto` 对称的结构（每个类型一对 ToProto/FromProto）；
+- 修了两个真 bug：
+  1. 方向枚举差 1（`State.Direction.Up=0` vs `Protocol.Direction.Up=1`），原来直接强转会静默错位；
+  2. `ToProto` 漏发 `Width/Height/RemainingSeconds`，导致观战端读回来全是 0。
 
-新增文件（都不碰游戏逻辑）：
+### P0-2 修 NetHost.Attach 的守卫 ✅
 
-| 文件 | 职责 |
-| --- | --- |
-| `NetWork/NetOptions.cs` | 解析 `--host` / `--join` / `--ping` / `--broker` / `--room` / `--name` |
-| `NetWork/MqttTransport.cs` | 连接 / 订阅 / 发布 / 收件箱（纯传输） |
-| `NetWork/NetHost.cs` | 三种模式的生命周期：Ping / Host / Client |
+原来是 `if (mqttTransport is null || sp is null || ...) return;`，第一次进来 `sp` 必为 null → 永远 return。
 
-**装配（本阶段只加 1 行）**
+现在保留**两个 if**（语义不同，便于排错）：
 
-```csharp
-// program.cs
-var netOptions = NetOptions.Parse(args, gameSettings.NetWorkConfig.RoomId);
-if (netOptions.Mode is not NetMode.None) { await NetHost.RunAsync(netOptions); return; }
-```
+    // 依赖没准备好，或者不是主机，就不挂
+    if (mqttTransport is null || no is null || no.NetMode is not NetMode.Host) return;
 
-阶段 3 才会再补 2 行（`NetHost.Attach(args)` + 客户端分支），用来把游戏接进来。
+    // 已经挂过，幂等返回
+    if (sp is not null) return;
 
-**主题**
+> 也可以合并成一条 `if (sp is not null || mqttTransport is null || no is null || no.NetMode is not NetMode.Host) return;`，
+> 逻辑等价；分开写是为了以后看日志能判断是哪一类没通过。
 
-| 方向 | 主题 | QoS |
+### P0-3 RunHostAsync 不能阻塞 ✅
+
+改成连上就返回，让 `program.cs` 继续登录、进游戏：
+
+    static Task RunHostAsync()
+    {
+        Console.WriteLine("[host] 已连接，进入游戏后开始广播快照");
+        return Task.CompletedTask;
+    }
+
+**为什么 Host 不能顺便跑 `Drain()`**：`Drain()` 末尾会 `Console.ReadKey` 消费按键，
+会把游戏主循环的 WASD 全部吞掉；而且它还会把 `/state` 渲染到主机屏幕上。
+收包留给阶段 4 的专用 `DrainInput()`（只处理 `/input/`，不碰 `Console`）。
+
+### P0-4 program.cs 补 return ✅
+
+    if (netOptions.NetMode is not NetMode.None)
+    {
+        await NetHost.RunAsync(netOptions);
+
+        // 主机继续进游戏（开局时 Attach 启动快照泵）；观战/测连通跑完就退出
+        if (netOptions.NetMode is not NetMode.Host)
+            return;
+    }
+
+### 额外：日志赋值顺序 ✅
+
+`mqttTransport.Log = Console.WriteLine;` 挪到 `ConnectAsync` **之前**，否则连接/订阅阶段的日志全被吞掉。
+
+---
+
+## 2. 剩余任务
+
+### P1：把观战真正跑起来
+
+- [ ] **P1-1 重写 `RemoteRender`（当前最大问题）**
+  - 现在的写法：对**每个格子**都遍历所有食物、每只蛇的每一节，并 `Append` 一次 →
+    每行字符数 = 1 + 食物数 + Σ蛇长 + 玩家数，**行宽爆炸**，画面是乱的。
+  - 正确做法：先建 `char[,] grid`（边界 █ / 空格），再**覆盖**：食物 → 蛇身 → 蛇头；最后按行拼字符串。
+  - 蛇头取 `SnakeSegments[^1]`，且要**先画身体再画头**；死亡玩家不画头。
+  - 宽高可以用 `GameState.width/height`（proto 已加），不必再读配置文件。
+
+- [ ] **P1-2 `SnapshotPump.Dispose` 别抛异常**
+  - 改成 `cts.Cancel(); cts.Dispose();`。
+
+- [ ] **P1-3 Client 退出键**
+  - `Drain()` 里的 `Escape` 只是 return 出 `Drain`，退不出循环；在 `RunClientAsync` 里处理 `q`。
+
+- [ ] **P1-4 双终端验收**
+
+      # 终端 1（主机）
+      dotnet run -- --host --room snake-t3 --broker broker.emqx.io:1883
+      #   登录 -> 1 开始游戏 -> 2 本机双人
+
+      # 终端 2（观战）
+      dotnet run -- --join --room snake-t3 --broker broker.emqx.io:1883 --name 小明
+
+  - 验收：终端 2 每 100ms 刷新棋盘，蛇动、分数变、结束提示。
+
+### P2：输入上行（阶段 4）
+
+- [ ] P2-1 `RemoteInput`：`PlayerInput` → 合成 `ConsoleKeyInfo` → `Button.TouchClick`（主机侧）
+- [ ] P2-2 Client 采集：WASD/方向键/E → `PlayerInput`（带自增 `client_tick`）
+- [ ] P2-3 主机去重：只应用比上次新的 `client_tick`
+- [ ] P2-4 验收：观战端按 WASD，主机上的玩家2 会动
+
+### P3：收尾（阶段 5-7）
+
+- [ ] 房间号 / 座位 / 满员提示（复用 `RoomPlayerLists`）
+- [ ] 结算与重开（`is_game_over` → 双方结算 → R 重开）
+- [ ] 断线重连（MQTTnet 5 无自动重连，自己写退避）
+- [ ] README 增加「联机玩法」一节
+
+---
+
+## 3. 阶段表
+
+| 阶段 | 内容 | 状态 |
 | --- | --- | --- |
-| Client → Host | `snake/{room}/input/{playerId}` | 1 |
-| Host → Client | `snake/{room}/state` | 0 |
-| 双向 | `snake/{room}/hello` | 1 |
-
-**验收**：两个终端进同一房间互发 `hello`；换房号收不到；不带参数启动仍是原来的游戏流程。
-
----
-
-## 4. 阶段 3：只读观战（Host → Client 快照）
-
-> 完整实现清单（8 项任务 + 代码 + 验收）见 **[阶段3-快照观战清单.md](阶段3-快照观战清单.md)**
-
-- Host：`SnapshotPump` 每 100ms `world.Snapshot()` → `ProtoCodec.ToProto` → publish `GameState`；
-- Client：`RemoteRender` 收 `GameState` → 画 25×30 棋盘；
-- 装配：`GamePrepareArgs` 构造函数末尾加 1 行 `NetHost.Attach(this);`；
-- pump 用**独立定时器**，不挂在游戏循环里，所以单/双人逻辑零改动。
-
-**前置**：先修《阶段3清单》§0 的 3 个已知问题（Guid 格式串、空订阅、Log 没接线）。
-
-**验收**：Host 正常玩，Client 终端 100ms 刷新一次画面，蛇动、分数变、结束提示。
+| 阶段 2 | MQTT 连通（Ping 收发 hello） | ✅ 完成（已实测） |
+| 阶段 3 | 只读观战 | 🚧 约 75%：Host 发快照已通，Client 渲染要修 P1-1 |
+| 阶段 4 | 输入上行 | ⏳ 未开始 |
+| 阶段 5 | 房间/座位/满员 | ⏳ 未开始 |
+| 阶段 6 | 结算/重开/掉线 | ⏳ 未开始 |
+| 阶段 7 | 稳定性与文档 | ⏳ 未开始 |
 
 ---
 
-## 5. 阶段 4：输入上行（Client → Host）
+## 4. proto 字段：已选方案 B（已落地）
 
-- Client：在渲染循环里 `Console.KeyAvailable` 轮询，把 W/A/S/D/方向键/E → `PlayerInput`；
-- Host：`RemoteInput` 收包 → 合成 `ConsoleKeyInfo`：
+不再需要拍板，`app.proto` 现在已经有：
 
-```csharp
-// 远端 Direction.Up → 玩家2（Arrows 布局）
-args.Button.TouchClick(new ConsoleKeyInfo('\0', ConsoleKey.UpArrow, false, false, false));
-```
+    message PlayerState {
+      // 1-4 原有
+      string name = 5;
+      Direction direction = 6;
+    }
 
-- 去重：`client_tick` 单调递增，Host 只应用更新的；
-- 冷却/技能判定仍在 Host（`Skills` 里已有）。
+    message GameState {
+      // 1-5 原有
+      int32 width = 6;
+      int32 height = 7;
+      double remaining_seconds = 8;
+    }
 
-**验收**：同学按 W/A/S/D，你屏幕上的玩家2 会动；按 E 会冲刺。
-
----
-
-## 6. 阶段 5：房间、座位、身份
-
-- `--room snake-xxxx`：房间号（Host 生成，发给同学）；
-- `--name 张三`：显示名 / playerId；
-- 座位：Host 固定 p1，第一个加入的 Client 固定 p2；
-- 满员：第三个人加入回 `room/full`（复用 `RoomPlayerLists.PlayerMaxCount = 2` 的语义）；
-- 离开：MQTT 遗嘱（LWT）或 3s 心跳超时。
-
-**验收**：第二个人加入提示「房间已满」；有人掉线 Host 有提示。
+`ProtoCodec.ToProto` 已发送这些字段，`FromProto` 已读取，往返测试通过（65 字节，逐字段一致）。
 
 ---
 
-## 7. 阶段 6：结算、重开、掉线
+## 5. 文档导航
 
-- `is_game_over` → Client 弹结算（胜者/分数/长度）；
-- Host 按 R → `BeginRound()` → 广播 `snake/{room}/reset`，Client 清屏等待新快照；
-- 掉线：15s 无 `client_tick` → 判该方死亡并结算。
-
-**验收**：一局打完 → 重开 → 双方都回到新局。
-
----
-
-## 8. 阶段 7：稳定性与体验（可后置）
-
-- MQTTnet 5 **没有内置自动重连**：在 `DisconnectedAsync` 里做指数退避重连循环；
-- 输入 QoS1 + 去重，快照 QoS0；
-- 测量延迟：`hello` 里带时间戳，日志打 RTT；
-- 客户端插值（可选）：两帧快照间平滑；
-- 日志：`--verbose` 开关。
-
----
-
-## 9. 交付物
-
-- `NetWork/` 6 个文件 + 3 行装配；
-- `README`（或 `REDAME.md`）增加「联机玩法」：主机命令、同学命令、broker 选择、常见问题；
-- 两个脚本：`run-host.sh` / `run-client.sh`；
-- 演示脚本：一局完整对局的验收步骤。
-
----
-
-## 10. 验收清单
-
-- [ ] 同学 clone 后 `dotnet run` 能起（SDK 版本问题已解决）
-- [ ] `--ping` 两台机器互通
-- [ ] `--host` / `--join` 进入同一房间
-- [ ] 观战端能看到主机画面
-- [ ] 观战端按键能控制玩家2
-- [ ] 满员/掉线有提示
-- [ ] 一局结束能结算、能重开
-- [ ] 主机空闲时 CPU 正常（网络泵不空转）
-
----
-
-## 11. 风险与对策
-
-| 风险 | 对策 |
+| 文档 | 用途 |
 | --- | --- |
-| 同学没装 .NET 11 预览 SDK | 降到 net8.0，或发 `global.json` + 安装说明 |
-| 家里宽带 NAT，同学连不到你 | 先用公共 broker；要私密就上内网穿透 |
-| 公共 broker 房间撞车 | 随机 6 位房间号；主题里带房间前缀 |
-| 联机后两人操作互相干扰 | Host 只认 p1（自己键盘）+ p2（网络），云端不接管本地键盘 |
-| `GameState` 缺宽度/剩余时间 | 客户端先写死 25×30，或后续给 proto 加 4 个字段 |
+| [阶段2-MQTT入门与骨架.md](阶段2-MQTT入门与骨架.md) | MQTT 概念 + 从零搭骨架（已落地） |
+| [阶段3-快照观战清单.md](阶段3-快照观战清单.md) | 阶段 3 的代码参考（Attach 签名/文件名以本文件为准） |
+| 本文件 | 当前真实进度 + 剩余任务 |

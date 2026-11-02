@@ -76,8 +76,8 @@ class LocalDoubleSystem
 		Console.WriteLine("———————————————————————————本机双人对战—————————————————————————");
 		Console.WriteLine("玩家1: W A S D  加速: E   玩家2: ↑ ↓ ← →  加速: 0    退出： Esc");
 		Console.WriteLine();
-		MapPrinter.PrintMap(world, world.Players);
-		MapPrinter.PrintHud(world, world.Players);
+		MapPrinter.PrintMap(world.Snapshot());
+		MapPrinter.PrintHud(world.Snapshot());
 	}
 
 	static void EndSystem(Player p1, Player p2, GameWorld world)

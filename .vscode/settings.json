@@ -1,0 +1,25 @@
+{
+    // 隐藏 .NET 构建产物
+    // 注意：这些设置只在「VS Code 打开的工作区根目录」下的 .vscode 里才生效。
+    // 你现在打开的是 developer/，所以写在这里；app/.vscode 里那份只在直接打开 app 时生效。
+    "files.exclude": {
+        "**/bin": true,
+        "**/obj": true
+    },
+
+    // 搜索时也跳过（files.exclude 只管资源管理器显示，不影响搜索）
+    "search.exclude": {
+        "**/bin": true,
+        "**/obj": true
+    },
+
+    // 不监听构建产物，省 CPU
+    "files.watcherExclude": {
+        "**/bin/**": true,
+        "**/obj/**": true
+    },
+
+    // 关掉自动保存：避免旧缓冲区把磁盘上的新代码盖回旧版
+    "files.autoSave": "off",
+    "protobuf.protoc.path": "/usr/bin/protoc"
+}
