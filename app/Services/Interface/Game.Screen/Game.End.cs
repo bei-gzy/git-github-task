@@ -2,7 +2,7 @@ using App.World;
 
 namespace App.Game.Screen;
 
-class MultiRules
+public static class MultiRules
 {
 	// internal Player p1 = PlayerRegisterInterface.PlayerLists[0];
 

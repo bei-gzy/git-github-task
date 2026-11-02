@@ -16,20 +16,12 @@ public static class NetHost//启动器 + 分派器（组装器）
 	static NetOptions? no;
 	static SnapshotPump? sp;
 
-	/// <summary>网络是否真的连上（Host 用它判断要不要进游戏）</summary>
-	public static bool IsConnected => mqttTransport?.IsConnected ?? false;
-
 	public static void Attach(GameWorld world)
 	{
-		//依赖没准备好，或者不是主机，就不挂
-		if (mqttTransport is null || no is null || no.NetMode is not NetMode.Host) return;
-
-		//已经挂过，幂等返回
-		if (sp is not null) return;
-
+		if (mqttTransport is null || no is null || no.NetMode is not NetMode.Host || sp is not null) return;
 		sp = new SnapshotPump(world, no.Room, mqttTransport, 100);
 		_ = sp.RunAsync();
-		Console.WriteLine("[host]开始广播快照");
+		Console.WriteLine($"[host]开始广播快照");
 	}
 
 	public static async Task RunAsync(NetOptions netOptions)
@@ -37,19 +29,19 @@ public static class NetHost//启动器 + 分派器（组装器）
 		no = netOptions;
 		//房间名 + “-” + 32位无连字符GUID  ：N不带连字符   表达时 ： [..18]范围运算符，也叫格式
 		mqttTransport = new MqttTransport($"{no.Room}-{Guid.NewGuid().ToString("N")[..18]}");
-		mqttTransport.Log = Console.WriteLine;//先接日志，连接/订阅的过程才看得到
-		if (!await mqttTransport.ConnectAsync(no.BrokerHost, no.BrokerPort))
-			return;//连不上就别往下走，由 program.cs 决定是否继续
-
-		await mqttTransport.SubscribeAsync(default, $"snake/{no.Room}/#");
-
-		await (no.NetMode switch
+		if (await mqttTransport.ConnectAsync(no.BrokerHost, no.BrokerPort))
 		{
-			NetMode.Ping => RunPingAsync(no),
-			NetMode.Host => RunHostAsync(),
-			NetMode.Client => RunClientAsync(),
-			_ => Task.CompletedTask,
-		});
+			await mqttTransport.SubscribeAsync(default, $"snake/{no.Room}/#");
+			mqttTransport.Log = Console.WriteLine;
+
+			await (no.NetMode switch
+			{
+				NetMode.Ping => RunPingAsync(no),
+				NetMode.Host => RunHostAsync(),
+				NetMode.Client => RunClientAsync(),
+				_ => Task.CompletedTask,
+			});
+		}
 	}
 
 	static async Task RunPingAsync(NetOptions no)
@@ -65,9 +57,9 @@ public static class NetHost//启动器 + 分派器（组装器）
 		}
 	}
 
-	static Task RunHostAsync()//主机只负责发快照；收包交给阶段 4 的输入层
+	static Task RunHostAsync()//只收不发，本机自处理
 	{
-		Console.WriteLine("[host] 已连接，进入游戏后开始广播快照");
+		Console.WriteLine($"已经就绪，进游戏后广播");
 		return Task.CompletedTask;
 	}
 

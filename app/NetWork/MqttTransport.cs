@@ -20,6 +20,8 @@ public sealed class MqttTransport : IAsyncDisposable
 	//-----Log委托(日志)------
 	public Action<string>? Log { get; set; }
 
+	public bool IsConnected => client.IsConnected;
+
 	//构造函数内付出值委托人、包箱、委托人ID
 	public MqttTransport(string clientId)
 	{
@@ -45,9 +47,6 @@ public sealed class MqttTransport : IAsyncDisposable
 			return Task.CompletedTask;
 		};
 	}
-
-	//是否真的连上（Host 用它决定要不要进游戏）
-	public bool IsConnected => client.IsConnected;
 
 	//异步连接：返回是否成功，连不上只打日志，不抛异常
 	public async Task<bool> ConnectAsync(string host, int port, TimeSpan? keepAlive = null, CancellationToken ct = default)
@@ -77,8 +76,7 @@ public sealed class MqttTransport : IAsyncDisposable
 		catch (Exception ex)
 		{
 			//Connection refused = 端口没人监听；超时 = 网络或防火墙
-			Log?.Invoke($"[mqtt]连不上 {host}:{port}：{ex.InnerException?.Message ?? ex.Message}");
-			Log?.Invoke("[mqtt]检查：broker 起了吗？端口对吗？本机没有 broker 时可用 --broker broker.emqx.io:1883");
+			Log?.Invoke($"[mqtt]连不上 {host}:{port}:{ex.InnerException?.Message ?? ex.Message}");
 			return false;
 		}
 

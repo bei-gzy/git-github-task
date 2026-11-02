@@ -9,8 +9,10 @@ class LocalDoubleSystem
 	{
 		var world = args.GameWorld;
 		var p1 = args.Player;
+
 		var p2 = world.FindPlayer("guest") ?? new Player("guest");
-		p2 = world.AddPlayer(p2);
+		if (world.FindPlayer(p2.Id) is null)
+			p2 = world.AddPlayer(p2);
 
 		var room = new RoomPlayerLists();
 		if (!room.AddPlayer(p1) || !room.AddPlayer(p2))
@@ -27,9 +29,12 @@ class LocalDoubleSystem
 
 		var p1Input = args.LocalInput;
 		var p2Input = args.EnableGuestInput(p2, State.Direction.Up);
+		p1Input.Begin(State.Direction.Right);
 
 		var tick = TimeSpan.FromMilliseconds(world.TickMilliseconds);
 		using var timer = new PeriodicTimer(tick);
+
+		Draw(world);
 
 		while (!world.IsOver)
 		{
@@ -72,12 +77,15 @@ class LocalDoubleSystem
 
 	static void Draw(GameWorld world)
 	{
+		var snap = world.Snapshot();
+
 		Console.Clear();
-		Console.WriteLine("———————————————————————————本机双人对战—————————————————————————");
-		Console.WriteLine("玩家1: W A S D  加速: E   玩家2: ↑ ↓ ← →  加速: 0    退出： Esc");
+		Console.WriteLine("————— 本机双人对战 —————");
+		Console.WriteLine("玩家1: W A S D / E 加速   玩家2: ↑ ↓ ← → / 0 加速   Esc 退出");
 		Console.WriteLine();
-		MapPrinter.PrintMap(world.Snapshot());
-		MapPrinter.PrintHud(world.Snapshot());
+
+		MapPrinter.PrintMap(snap);
+		MapPrinter.PrintHud(snap);
 	}
 
 	static void EndSystem(Player p1, Player p2, GameWorld world)
@@ -85,49 +93,15 @@ class LocalDoubleSystem
 		var winner = MultiRules.Winner(p1, p2);
 
 		Console.Clear();
-		Console.WriteLine("—————————————————————对局结束—————————————————————————————");
+		Console.WriteLine("————— 对局结束 —————");
 
 		bool timeUp = world.ElapsedTime.TotalSeconds >= world.GameDurationSeconds;
-		Console.WriteLine(timeUp ? "时间到！" : winner is null ? "平局" : "🏆 " + winner.Name + " 获胜");
-		Console.WriteLine($"{p1.Name}: {p1.MScore.MyScore} 分，长度 {p1.MSnake.Snake.Count},{(p1.IsAlive ? "存活" : "死亡")}");
-		Console.WriteLine($"{p2.Name}: {p2.MScore.MyScore} 分，长度 {p2.MSnake.Snake.Count},{(p2.IsAlive ? "存活" : "死亡")}");
+		Console.WriteLine(timeUp ? "时间到" : winner is null ? "平局" : $"{winner.Name} 获胜");
+		Console.WriteLine($"{p1.Name}: {p1.MScore.MyScore} 分 长度 {p1.MSnake.Snake.Count} {(p1.IsAlive ? "存活" : "死亡")}");
+		Console.WriteLine($"{p2.Name}: {p2.MScore.MyScore} 分 长度 {p2.MSnake.Snake.Count} {(p2.IsAlive ? "存活" : "死亡")}");
 		Console.WriteLine($"用时 {world.ElapsedTime.TotalSeconds:F1} 秒");
 		Console.WriteLine();
 		Console.WriteLine("按任意键返回模式菜单…");
 		_ = Console.ReadKey(intercept: true);
 	}
 }
-
-// var body1 = p1.MSnake.Snake.ToHashSet();
-// var body2 = p2.MSnake.Snake.ToHashSet();
-// var pW = new StringBuilder();
-
-// _ = pW.AppendLine("———————————————————————————本机双人对战—————————————————————————");
-// _ = pW.AppendLine("玩家1: W A S D  加速: E   玩家2: 👆 👇 ← →  加速: 0    退出： Esc");
-
-// for (int y = 0; y < world.Height; y++)
-// {
-// 	for (int x = 0; x < world.Width; x++)
-// 	{
-// 		var pt = new State.Point(x, y);
-
-// 		_ = pW.Append(
-// 			world.IsWall(x, y) ? '█'
-// 			: p1.IsAlive && p1.MSnake.Head == pt ? '☻'
-// 			: p2.IsAlive && p2.MSnake.Head == pt ? '☺'
-// 			: p1.IsAlive && body1.Contains(pt) ? '◊'
-// 			: p2.IsAlive && body2.Contains(pt) ? '○'
-// 			: world.FoodAt(x, y) is not null ? '✰'
-// 			: ' '
-// 			);
-// 	}
-
-// 	_ = pW.AppendLine();
-// }
-
-// _ = pW.AppendLine(CultureInfo.InvariantCulture, $"玩家1: {p1.Name} 分数: {p1.MScore.MyScore} 长度: {p1.MSnake.Snake.Count} {(p1.IsAlive ? "存活" : "死亡")}");
-// _ = pW.AppendLine(CultureInfo.InvariantCulture, $"玩家2: {p2.Name} 分数: {p2.MScore.MyScore} 长度: {p2.MSnake.Snake.Count} {(p2.IsAlive ? "存活" : "死亡")}");
-// _ = pW.Append(CultureInfo.InvariantCulture, $"剩余时间: {Math.Max(0, world.GameDurationSeconds - world.ElapsedTime.TotalSeconds):F0} 秒");
-
-// Console.Clear();
-// Console.WriteLine(pW.ToString());

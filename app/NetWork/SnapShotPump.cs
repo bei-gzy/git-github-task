@@ -1,4 +1,5 @@
 using App.World;
+
 using Google.Protobuf;
 
 namespace App.NetWork;
@@ -28,7 +29,7 @@ public sealed class SnapshotPump(GameWorld world, string roomId, MqttTransport t
 		}
 	}
 
-	public void Dispose()
+	public void Dispose()//舍弃throw new NotImplementedException
 	{
 		cts.Cancel();
 		cts.Dispose();
