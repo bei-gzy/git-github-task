@@ -14,7 +14,7 @@ public sealed class GameWorld
 	public GameWorld(GameSettings gameSettings)
 	{
 		this.gameSettings = gameSettings;
-		random = new Random(1883);
+		random = new Random(timeLose.Milliseconds);
 		GameDurationSeconds = gameSettings.GameDurationSeconds;
 		TickMilliseconds = gameSettings.TickMilliseconds;
 		Width = gameSettings.MapConfig.GameMapWidth;

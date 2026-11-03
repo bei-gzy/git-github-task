@@ -24,17 +24,14 @@ class LocalDoubleSystem
 
 		p1.SetName("玩家1");
 		p2.SetName("玩家2");
-		p1.ResetForNewGame(10, world.Height / 3, State.Direction.Right);
+		p1.ResetForNewGame(10, world.Height / 3, State.Direction.Down);
 		p2.ResetForNewGame(world.Width - 11, world.Height * 2 / 3, State.Direction.Up);
 
 		var p1Input = args.LocalInput;
 		var p2Input = args.EnableGuestInput(p2, State.Direction.Up);
-		p1Input.Begin(State.Direction.Right);
 
 		var tick = TimeSpan.FromMilliseconds(world.TickMilliseconds);
 		using var timer = new PeriodicTimer(tick);
-
-		Draw(world);
 
 		while (!world.IsOver)
 		{
@@ -77,15 +74,13 @@ class LocalDoubleSystem
 
 	static void Draw(GameWorld world)
 	{
-		var snap = world.Snapshot();
-
 		Console.Clear();
 		Console.WriteLine("————— 本机双人对战 —————");
 		Console.WriteLine("玩家1: W A S D / E 加速   玩家2: ↑ ↓ ← → / 0 加速   Esc 退出");
 		Console.WriteLine();
 
-		MapPrinter.PrintMap(snap);
-		MapPrinter.PrintHud(snap);
+		MapPrinter.PrintMap(world.Snapshot());
+		MapPrinter.PrintHud(world.Snapshot());
 	}
 
 	static void EndSystem(Player p1, Player p2, GameWorld world)

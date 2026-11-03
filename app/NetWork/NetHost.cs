@@ -1,5 +1,8 @@
 using App.Protocol;
 using App.World;
+using App.KeyBoard;
+
+using Google.Protobuf;
 
 namespace App.NetWork;
 
@@ -15,9 +18,11 @@ public static class NetHost//启动器 + 分派器（组装器）
 	static MqttTransport? mqttTransport;
 	static NetOptions? no;
 	static SnapshotPump? sp;
+	static Button? button;
 
-	public static void Attach(GameWorld world)
+	public static void Attach(GameWorld world, Button input)
 	{
+		button = input;
 		if (mqttTransport is null || no is null || no.NetMode is not NetMode.Host || sp is not null) return;
 		sp = new SnapshotPump(world, no.Room, mqttTransport, 100);
 		_ = sp.RunAsync();
@@ -72,20 +77,60 @@ public static class NetHost//启动器 + 分派器（组装器）
 		var m = System.Text.Encoding.UTF8;
 		while (await timer.WaitForNextTickAsync())
 		{
+			await ClientInput();
 			Drain();
+			//只在连接成功输出
 			if (onlyreadone) continue;
 			onlyreadone = true;
-			_ = await mqttTransport!.PublishAsync($"snake/{no!.Room}/hello", m.GetBytes($"hi,{no.Name}已加入"));//序列化
+			_ = await mqttTransport!.PublishAsync($"snake/{no!.Room}/hello", m.GetBytes($"hi,{no.Name}已加入"));
 		}
+	}
+
+	static async Task ClientInput()
+	{
+		while (Console.KeyAvailable)
+		{
+			var key = Console.ReadKey(intercept: true).Key;
+			var dir = key switch
+			{
+				ConsoleKey.UpArrow => Direction.Up,
+				ConsoleKey.DownArrow => Direction.Down,
+				ConsoleKey.LeftArrow => Direction.Left,
+				ConsoleKey.RightArrow => Direction.Right,
+				_ => Direction.Unspecified
+			};
+
+			bool isDash = key is ConsoleKey.NumPad0;
+			if (!isDash && dir is Direction.Unspecified) continue;
+
+			var input = new PlayerInput
+			{
+				RoomId = no!.Room,
+				PlayerId = no.Name,
+				UseDash = isDash,
+				Direction = dir
+			};
+
+			if (!await mqttTransport!.PublishAsync($"snake/{no!.Room}/input", input.ToByteArray()))
+				mqttTransport.Log?.Invoke($"[client]发送: {key} {input}失败");
+		}
+
+		return;
 	}
 
 	static void Drain()//消费收包队列--> 翻译input传回GameWorld
 	{
 		while (mqttTransport!.TryReceive(out string topic, out byte[] payload))
 		{
-			//过滤处理,StringComparison    Ordinal这是
+			//过滤处理,StringComparison
 			if (!topic.EndsWith("/state", StringComparison.Ordinal)) continue;
 			RemoteRender.Draw(GameState.Parser.ParseFrom(payload));
+
+			// Ordinal 按字符编码值进行区分大小写的比较，不受语言/区域设置影响；适合比较协议主题。
+			// OrdinalIgnoreCase 可忽略大小写；CurrentCulture 会按当前区域规则比较，通常不适合协议标识。
+			if (!topic.EndsWith("/input", StringComparison.Ordinal)) continue;
+			if (button is not null)
+				RemoteInput.ReadRemoteInput(button, PlayerInput.Parser.ParseFrom(payload));
 		}
 
 		while (Console.KeyAvailable)

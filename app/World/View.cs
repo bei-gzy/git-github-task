@@ -30,13 +30,23 @@ public static class MapPrinter
 				{
 					var p = ws.Players[i];
 					if (!p.IsAlive) continue;
-					var (head, body) = Styles[i % Styles.Length];
-					if (bodies[i].Contains(pt)) { c = body; break; }
 
-					if (p.Segments[^1] == pt) { c = head; break; }
+					var (head, body) = Styles[i % Styles.Length];
+					if (p.Segments.Count > 0)
+					{
+						if (p.Segments[^1] == pt) { c = head; break; }
+						else if (bodies[i].Contains(pt)) { c = body; break; }
+					}
 				}
 
-				if (c == ' ' && ws.Foods is not null) c = '✰';
+				if (c == ' ')
+				{
+					foreach (var f in ws.Foods)
+					{
+						if (f.Position == pt) { c = '✰'; break; }
+					}
+				}
+
 				_ = sb.Append(c);
 			}
 

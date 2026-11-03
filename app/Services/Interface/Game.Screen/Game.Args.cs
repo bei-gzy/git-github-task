@@ -44,7 +44,7 @@ class GamePrepareArgs
 		LocalInput = new KeyBoardController(Button, Player, KeyLayout.Wasd, ConsoleKey.E);
 		quit = new QuitController(Button, GameWorld);
 		CollisionController = new CollisionController(Collision);
-		NetHost.Attach(GameWorld);
+		NetHost.Attach(GameWorld, Button);
 	}
 
 	public void BeginRound()

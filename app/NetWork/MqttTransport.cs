@@ -20,8 +20,6 @@ public sealed class MqttTransport : IAsyncDisposable
 	//-----Log委托(日志)------
 	public Action<string>? Log { get; set; }
 
-	public bool IsConnected => client.IsConnected;
-
 	//构造函数内付出值委托人、包箱、委托人ID
 	public MqttTransport(string clientId)
 	{

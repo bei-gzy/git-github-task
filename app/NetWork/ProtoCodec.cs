@@ -6,7 +6,7 @@ namespace App.NetWork;
 
 public static class ProtoCodec
 {
-	public static GameState ToProto(WorldSnapShot gss, string roomId)
+	public static GameState ToProtoState(WorldSnapShot gss, string roomId)
 	{
 		var msg = new GameState
 		{
@@ -42,7 +42,7 @@ public static class ProtoCodec
 		return msg;
 	}
 
-	public static WorldSnapShot FromProto(GameState s) => new(
+	public static WorldSnapShot FromProtoState(GameState s) => new(
 		s.ServerTick,
 		s.Width,
 		s.Height,

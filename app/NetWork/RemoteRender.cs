@@ -8,7 +8,7 @@ public static class RemoteRender//proto快照花成终端画面-->客户端渲�
 {
 	public static void Draw(GameState state)
 	{
-		var ws = ProtoCodec.FromProto(state);// 网络消息 → 本地快照
+		var ws = ProtoCodec.FromProtoState(state);// 网络消息 → 本地快照
 
 		Console.Clear();
 		Console.WriteLine($"————— 观战  房间={state.RoomId}  tick={state.ServerTick} —————");

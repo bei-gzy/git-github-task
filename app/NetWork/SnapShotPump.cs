@@ -8,7 +8,7 @@ public sealed class SnapshotPump(GameWorld world, string roomId, MqttTransport t
 {
 	readonly CancellationTokenSource cts = new();
 
-	public async Task RunAsync()
+	public async Task RunAsync()//主机发快照给客户端
 	{
 		using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(intervalMs));
 
@@ -18,15 +18,12 @@ public sealed class SnapshotPump(GameWorld world, string roomId, MqttTransport t
 			{
 				if (world.Players.Count is 0) continue;
 
-				var msg = ProtoCodec.ToProto(world.Snapshot(), roomId);
-
+				var msg = ProtoCodec.ToProtoState(world.Snapshot(), roomId);
 				if (!await transport.PublishAsync($"snake/{roomId}/state", msg.ToByteArray(), cts.Token))
-					transport.Log?.Invoke("[mqtt] 发布快照失败");
+					transport.Log?.Invoke("[mqtt] 发布状态失败");
 			}
 		}
-		catch (OperationCanceledException)
-		{
-		}
+		catch (OperationCanceledException) { }
 	}
 
 	public void Dispose()//舍弃throw new NotImplementedException
