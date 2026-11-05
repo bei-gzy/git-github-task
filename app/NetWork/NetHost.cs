@@ -18,15 +18,42 @@ public static class NetHost//启动器 + 分派器（组装器）
 	static MqttTransport? mqttTransport;
 	static NetOptions? no;
 	static SnapshotPump? sp;
+	static Task? snapShotTask;
 	static Button? button;
+	static ulong ClentTick { get; }
 
-	public static void Attach(GameWorld world, Button input)
+	public static void StartInput(Button input) => button = input;
+
+	public static void StartSnapShot(GameWorld world)
 	{
-		button = input;
 		if (mqttTransport is null || no is null || no.NetMode is not NetMode.Host || sp is not null) return;
 		sp = new SnapshotPump(world, no.Room, mqttTransport, 100);
-		_ = sp.RunAsync();
-		Console.WriteLine($"[host]开始广播快照");
+		snapShotTask = sp.RunAsync();
+		//"[host]开始广播快照"
+	}
+
+	public static async Task DetachAsync()
+	{
+		try
+		{
+			if (snapShotTask is not null)
+				await snapShotTask.ConfigureAwait(false);
+		}
+		finally
+		{
+			try
+			{
+				sp!.Dispose();
+				no!.ReSet();
+			}
+			finally
+			{
+				if (mqttTransport is not null)
+					await mqttTransport.DisposeAsync().ConfigureAwait(false);
+				// 记录日志，dispose 阶段一般不往外抛
+				mqttTransport!.Log?.Invoke($"[host]断开连接");
+			}
+		}
 	}
 
 	public static async Task RunAsync(NetOptions netOptions)
@@ -64,7 +91,8 @@ public static class NetHost//启动器 + 分派器（组装器）
 
 	static Task RunHostAsync()//只收不发，本机自处理
 	{
-		Console.WriteLine($"已经就绪，进游戏后广播");
+		if (mqttTransport is not null || no is not null || sp is not null)
+			Console.WriteLine($"已经就绪，进游戏后广播");
 		return Task.CompletedTask;
 	}
 
@@ -84,6 +112,9 @@ public static class NetHost//启动器 + 分派器（组装器）
 			onlyreadone = true;
 			_ = await mqttTransport!.PublishAsync($"snake/{no!.Room}/hello", m.GetBytes($"hi,{no.Name}已加入"));
 		}
+
+		while (Console.KeyAvailable)
+			if (Console.ReadKey(intercept: true).Key is ConsoleKey.Escape) return;
 	}
 
 	static async Task ClientInput()
@@ -91,25 +122,19 @@ public static class NetHost//启动器 + 分派器（组装器）
 		while (Console.KeyAvailable)
 		{
 			var key = Console.ReadKey(intercept: true).Key;
-			var dir = key switch
+			var (dir, isDash) = key switch
 			{
-				ConsoleKey.UpArrow => Direction.Up,
-				ConsoleKey.DownArrow => Direction.Down,
-				ConsoleKey.LeftArrow => Direction.Left,
-				ConsoleKey.RightArrow => Direction.Right,
-				_ => Direction.Unspecified
+				ConsoleKey.W or ConsoleKey.UpArrow => (Direction.Up, false),
+				ConsoleKey.S or ConsoleKey.DownArrow => (Direction.Down, false),
+				ConsoleKey.A or ConsoleKey.LeftArrow => (Direction.Left, false),
+				ConsoleKey.D or ConsoleKey.RightArrow => (Direction.Right, false),
+				ConsoleKey.E or ConsoleKey.NumPad0 => (Direction.Unspecified, true),
+				_ => (Direction.Unspecified, false)
 			};
 
-			bool isDash = key is ConsoleKey.NumPad0;
 			if (!isDash && dir is Direction.Unspecified) continue;
-
-			var input = new PlayerInput
-			{
-				RoomId = no!.Room,
-				PlayerId = no.Name,
-				UseDash = isDash,
-				Direction = dir
-			};
+			if (no is null) continue;
+			var input = ProtoCodec.ToProtoInput(no, isDash, dir, ClentTick);
 
 			if (!await mqttTransport!.PublishAsync($"snake/{no!.Room}/input", input.ToByteArray()))
 				mqttTransport.Log?.Invoke($"[client]发送: {key} {input}失败");
@@ -118,23 +143,44 @@ public static class NetHost//启动器 + 分派器（组装器）
 		return;
 	}
 
+	public static void PumpInput()
+	{
+		if (mqttTransport is null || no is null || button is null) return;
+		while (mqttTransport.TryReceive(out string topic, out byte[] payload))
+		{
+			if (!topic.EndsWith("/input", StringComparison.Ordinal)) continue;
+			try
+			{
+				if (button is not null && payload.Length is > 0 and < 65536)
+					RemoteInput.ReadRemoteInput(button, no.Room, PlayerInput.Parser.ParseFrom(payload));
+			}
+			catch
+			{
+				mqttTransport.Log?.Invoke($"丢弃乱包{payload}");
+				payload.AsSpan().Clear();
+			}
+		}
+	}
+
 	static void Drain()//消费收包队列--> 翻译input传回GameWorld
 	{
 		while (mqttTransport!.TryReceive(out string topic, out byte[] payload))
 		{
-			//过滤处理,StringComparison
-			if (!topic.EndsWith("/state", StringComparison.Ordinal)) continue;
-			RemoteRender.Draw(GameState.Parser.ParseFrom(payload));
-
-			// Ordinal 按字符编码值进行区分大小写的比较，不受语言/区域设置影响；适合比较协议主题。
+			//过滤处理,StringComparison      Ordinal 按字符编码值进行区分大小写的比较，不受语言/区域设置影响；适合比较协议主题。
 			// OrdinalIgnoreCase 可忽略大小写；CurrentCulture 会按当前区域规则比较，通常不适合协议标识。
-			if (!topic.EndsWith("/input", StringComparison.Ordinal)) continue;
-			if (button is not null)
-				RemoteInput.ReadRemoteInput(button, PlayerInput.Parser.ParseFrom(payload));
+			if (!topic.EndsWith("/state", StringComparison.Ordinal)) continue;
+			byte[] lastPayload = payload;
+			try
+			{
+				if (lastPayload.Length is > 0 and < 65536 && RemoteRender.Draw(GameState.Parser.ParseFrom(lastPayload)))
+					mqttTransport.Log?.Invoke($"[render]成功绘制: {topic}");
+			}
+			catch
+			{
+				mqttTransport.Log?.Invoke($"丢弃乱包{payload}");
+				payload.AsSpan().Clear();
+			}
 		}
-
-		while (Console.KeyAvailable)
-			if (Console.ReadKey(intercept: true).Key is ConsoleKey.Escape) return;
 	}
 }
 

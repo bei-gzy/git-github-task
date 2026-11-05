@@ -146,6 +146,9 @@ public sealed class GameWorld
 
 	public ulong Tick { get; private set; }
 
+	//锁
+	public object Lock { get; } = new();
+
 	public void Restart()
 	{
 		timeLose = TimeSpan.Zero;
@@ -164,29 +167,32 @@ public sealed class GameWorld
 	//只读快照
 	public WorldSnapShot Snapshot()
 	{
-		var playerSnapshots = new List<PlayerSnapShot>(players.Count);
-		foreach (var player in players)
+		lock (Lock)
 		{
-			playerSnapshots.Add(new PlayerSnapShot(
-				player.Id,
-				player.Name ?? "",
-				[.. player.MSnake.Snake],
-				player.MScore.MyScore,
-				player.IsAlive,
-				player.MSnake.Nextdir));
+			var playerSnapshots = new List<PlayerSnapShot>(players.Count);
+			foreach (var player in players)
+			{
+				playerSnapshots.Add(new PlayerSnapShot(
+					player.Id,
+					player.Name ?? "",
+					[.. player.MSnake.Snake],
+					player.MScore.MyScore,
+					player.IsAlive,
+					player.MSnake.Nextdir));
+			}
+
+			var foodSnapshots = new List<FoodSnapShot>(Foods.Count);
+			foreach (var food in Foods)
+				foodSnapshots.Add(new FoodSnapShot(food.Position, food.Type));
+
+			return new WorldSnapShot(
+				Tick,
+				Width,
+				Height,
+				playerSnapshots,
+				foodSnapshots,
+				Math.Max(0, GameDurationSeconds - ElapsedTime.TotalSeconds),
+				IsOver);
 		}
-
-		var foodSnapshots = new List<FoodSnapShot>(Foods.Count);
-		foreach (var food in Foods)
-			foodSnapshots.Add(new FoodSnapShot(food.Position, food.Type));
-
-		return new WorldSnapShot(
-			Tick,
-			Width,
-			Height,
-			playerSnapshots,
-			foodSnapshots,
-			Math.Max(0, GameDurationSeconds - ElapsedTime.TotalSeconds),
-			IsOver);
 	}
 }

@@ -1,5 +1,6 @@
 using App.Game.Screen;
 using App.World;
+using App.NetWork;
 
 namespace App.Services;
 
@@ -37,23 +38,26 @@ class LocalDoubleSystem
 		{
 			while (Console.KeyAvailable)
 				args.Button.TouchClick(Console.ReadKey(intercept: true));
-
-			if (world.QuitRequired) break;
-
-			world.UpdateTime(tick);
-			if (world.IsOver) break;
-
-			world.UpdateFood(tick);
-
-			p1.MSnake.Nextdir = p1Input.Direction;
-			p2.MSnake.Nextdir = p2Input.Direction;
-			p1.Skills.MoveMode(world, p1);
-			p2.Skills.MoveMode(world, p2);
-
-			foreach (var p in world.Players)
+			NetHost.PumpInput();
+			lock (world.Lock)//上锁
 			{
-				if (p.IsAlive)
-					args.Collision.TouchCollision(p, world, args.Score);
+				if (world.QuitRequired) break;
+
+				world.UpdateTime(tick);
+				if (world.IsOver) break;
+
+				world.UpdateFood(tick);
+
+				p1.MSnake.Nextdir = p1Input.Direction;
+				p2.MSnake.Nextdir = p2Input.Direction;
+				p1.Skills.MoveMode(world, p1);
+				p2.Skills.MoveMode(world, p2);
+
+				foreach (var p in world.Players)
+				{
+					if (p.IsAlive)
+						args.Collision.TouchCollision(p, world, args.Score);
+				}
 			}
 
 			Draw(world);

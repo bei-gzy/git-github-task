@@ -6,6 +6,20 @@ namespace App.NetWork;
 
 public static class ProtoCodec
 {
+	public static PlayerInput ToProtoInput(NetOptions no, bool isDash, Direction dir, ulong clentTick)
+	{
+		var input = new PlayerInput
+		{
+			RoomId = no.Room,
+			PlayerId = no.Name,
+			ClientTick = ++clentTick,
+			UseDash = isDash,
+			Direction = dir
+		};
+
+		return input;
+	}
+
 	public static GameState ToProtoState(WorldSnapShot gss, string roomId)
 	{
 		var msg = new GameState

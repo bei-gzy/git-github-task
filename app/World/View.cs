@@ -13,6 +13,10 @@ public static class MapPrinter
 
 	public static void PrintMap(WorldSnapShot ws)
 	{
+		if (ws.Width * ws.Height is < 100 or > 5000
+			|| ws.Players.Count > 8
+			|| ws.Foods.Count > 50) { return; }
+
 		var bodies = new HashSet<State.Point>[ws.Players.Count];//把身体的各点封装成去重哈希集合
 		for (int i = 0; i < ws.Players.Count; i++)
 			bodies[i] = [.. ws.Players[i].Segments];//new HashSet<State.Point>(~~)

@@ -32,7 +32,8 @@ public sealed class MqttTransport : IAsyncDisposable
 		client.ApplicationMessageReceivedAsync += e =>
 		{
 			//后台回调收包  放进线程给主线程后续调用
-			inbox.Enqueue(new MqttMessage(e.ApplicationMessage.Topic, e.ApplicationMessage.Payload.ToArray()));
+			if ((inbox.Count > 256) && inbox.TryDequeue(out _))
+				inbox.Enqueue(new MqttMessage(e.ApplicationMessage.Topic, e.ApplicationMessage.Payload.ToArray()));
 			return Task.CompletedTask;
 		};
 
@@ -92,7 +93,7 @@ public sealed class MqttTransport : IAsyncDisposable
 		var b = new MqttClientSubscribeOptionsBuilder();//建造者，用来拼装一次订阅请求
 		foreach (string t in topics)
 		{
-			_ = b.WithTopicFilter(t, MqttQualityOfServiceLevel.AtLeastOnce);//主题过滤器 + Qos
+			_ = b.WithTopicFilter(t, MqttQualityOfServiceLevel.AtLeastOnce, noLocal: true);//主题过滤器 + Qos//订阅时排除自己
 		}
 
 		//发起订阅
@@ -120,7 +121,7 @@ public sealed class MqttTransport : IAsyncDisposable
 		var msg = new MqttApplicationMessageBuilder()
 			.WithTopic(topic)
 			.WithPayload(payload)
-			.WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
+			.WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
 			.WithRetainFlag(false)
 			.Build();
 
@@ -158,7 +159,7 @@ public sealed class MqttTransport : IAsyncDisposable
 			if (client.IsConnected)
 				await client.DisconnectAsync();
 		}
-		catch
+		finally
 		{
 			client.Dispose();//丢弃无用的订阅
 		}

@@ -27,25 +27,32 @@ class GameStart : HomeScreen
 		{
 			PrintChoose();
 
-			switch (WaitKey().Key)
+			Func<GamePrepareArgs, Task>? runRound = WaitKey().Key switch
 			{
-				case ConsoleKey.D1:
-					args.BeginRound();
-					_ = await FuncSystem.GameRunSystemAsync(args);
-					args.EndRound();
-					break;
+				ConsoleKey.D1 => async gameArgs => { _ = await FuncSystem.GameRunSystemAsync(gameArgs); }
+				,
+				ConsoleKey.D2 => async gameArgs => { _ = await LocalDoubleSystem.GameRunSystemAsync(gameArgs); }
+				,
+				ConsoleKey.D3 => null,
+				_ => null
+			};
 
-				case ConsoleKey.D2:
-					args.BeginRound();
-					_ = await LocalDoubleSystem.GameRunSystemAsync(args);
-					args.EndRound();
-					break;
+			if (runRound is null)
+			{
+				return hstate = GameState.HomeScreenState.Choosegamemode;
+			}
 
-				case ConsoleKey.D3:
-					return hstate = GameState.HomeScreenState.Choosegamemode;
-
-				default:
-					break;
+			if (runRound is { } run)//表示当runRound非null时，将其赋值给run
+			{
+				args.BeginRound();
+				try
+				{
+					await run(args);
+				}
+				finally
+				{
+					await args.EndRound();
+				}
 			}
 		}
 	}

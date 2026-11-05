@@ -46,6 +46,15 @@ public sealed class NetOptions
 
 		return no;
 	}
+
+	public void ReSet()
+	{
+		NetMode = NetMode.None;
+		BrokerHost = "broker.emqx.io";
+		BrokerPort = 1883;
+		Room = "snake-dev";
+		Name = "player";
+	}
 }
 
 // "用法：",

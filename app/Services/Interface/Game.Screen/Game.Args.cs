@@ -44,7 +44,6 @@ class GamePrepareArgs
 		LocalInput = new KeyBoardController(Button, Player, KeyLayout.Wasd, ConsoleKey.E);
 		quit = new QuitController(Button, GameWorld);
 		CollisionController = new CollisionController(Collision);
-		NetHost.Attach(GameWorld, Button);
 	}
 
 	public void BeginRound()
@@ -54,10 +53,12 @@ class GamePrepareArgs
 		LocalInput.Begin(State.Direction.Down);
 		quit.Begin();
 		CollisionController.Subscribe();
+		NetHost.StartSnapShot(GameWorld);
 	}
 
-	public void EndRound()
+	public async Task EndRound()
 	{
+		await NetHost.DetachAsync();
 		LocalInput.End();
 		GuestInput?.End();
 		GuestInput = null;
