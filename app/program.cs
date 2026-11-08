@@ -37,3 +37,15 @@ finally
 	}
 }
 
+/*
+UI (Console)                入口 / 菜单 / 结算
+   │
+RoundRunner                 一局：输入 → 推进 → 渲染 → 快照
+   ├─ IInputSource          本地键盘 / 远端网络（都产出 PlayerIntent）
+   ├─ IRenderer             Console 渲染（MapPrinter）
+   └─ ISnapshotSink         网络广播
+   │
+Domain                      GameWorld / Player / Snake / Rules（无 Console、无网络）
+   │
+Infrastructure              MQTT / ProtoCodec / Config
+*/

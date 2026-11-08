@@ -1,22 +1,20 @@
-using App.GameScore;
 using App.World;
 
 namespace App.GameCollision;
 
-class CollisionArgs(Player player, GameWorld world, Score score)
+public class CollisionArgs(Player player, GameWorld world)
 {
 	public Player Player { get; } = player;
-	public Score Score { get; } = score;
 	public GameWorld World { get; } = world;
 }
 
-class Collision()
+public class Collision()
 {
 	public event EventHandler<CollisionArgs>? CollisionWhat;
 
-	public void TouchCollision(Player player, GameWorld world, Score score)
+	public void TouchCollision(Player player, GameWorld world)
 	{
-		var args = new CollisionArgs(player, world, score);
+		var args = new CollisionArgs(player, world);
 
 		OnCollisionWhat(args);
 	}
@@ -25,7 +23,7 @@ class Collision()
 	protected virtual void OnCollisionWhat(CollisionArgs ecollision) => CollisionWhat?.Invoke(this, ecollision);
 }
 
-class CollisionController(Collision collision)
+public class CollisionController(Collision collision)
 {
 	public void Subscribe()
 	{
@@ -51,7 +49,7 @@ class CollisionController(Collision collision)
 		if (e.World.FoodAt(e.Player.MSnake.Head.X, e.Player.MSnake.Head.Y) is { } food)
 		{
 			e.World.RemoveFood(e.Player.MSnake.Head.X, e.Player.MSnake.Head.Y);
-			e.Score.CallAddScore(e.Player.MScore, food.Type);
+			e.Player.MScore.AddScore(food);
 			e.World.GenerateFood();
 		}
 

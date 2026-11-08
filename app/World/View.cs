@@ -72,4 +72,15 @@ public static class MapPrinter
 
 		Console.WriteLine($"剩余 {ws.RemainingSeconds:F0} 秒 食物 {ws.Foods.Count} 个");
 	}
+
+	public static void Draw(WorldSnapShot snapShot, string title, string? hint = null)
+	{
+		Console.Clear();
+		Console.WriteLine(title);
+		Console.WriteLine(hint);
+		Console.WriteLine();
+
+		PrintMap(snapShot);
+		PrintHud(snapShot);
+	}
 }

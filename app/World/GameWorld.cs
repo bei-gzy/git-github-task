@@ -24,7 +24,7 @@ public sealed class GameWorld
 		GenerateFood();
 	}
 
-	//地图
+	//地图 0 1地图逻辑
 	bool[,] Walls { get; set; } = new bool[0, 0];
 
 	public int Width { get; private set; }

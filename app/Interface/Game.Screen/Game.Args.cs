@@ -1,6 +1,5 @@
 using App.Game.Register;
 using App.Services;
-using App.GameScore;
 using App.GameCollision;
 using App.KeyBoard;
 using App.Config;
@@ -9,7 +8,7 @@ using App.NetWork;
 
 namespace App.Game.Screen;
 
-class GamePrepareArgs
+public class GamePrepareArgs
 {
 	//登录时创建的账号，每局都用同一个对象
 	readonly Player local;
@@ -21,9 +20,6 @@ class GamePrepareArgs
 	//本局本地玩家
 	public Player Player { get; private set; }
 
-	//计分
-	public Score Score { get; } = new Score();
-
 	public Button Button { get; } = new();
 
 	public KeyBoardController LocalInput { get; }
@@ -33,7 +29,7 @@ class GamePrepareArgs
 	//碰撞检测
 	public Collision Collision { get; } = new();
 
-	public CollisionController CollisionController { get; }
+	internal CollisionController CollisionController { get; }
 
 	public GamePrepareArgs(GameSettings gameSettings)
 	{

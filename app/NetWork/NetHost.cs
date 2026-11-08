@@ -22,8 +22,6 @@ public static class NetHost//启动器 + 分派器（组装器）
 	static Button? button;
 	static ulong ClentTick { get; }
 
-	public static void StartInput(Button input) => button = input;
-
 	public static void StartSnapShot(GameWorld world)
 	{
 		if (mqttTransport is null || no is null || no.NetMode is not NetMode.Host || sp is not null) return;
@@ -143,8 +141,9 @@ public static class NetHost//启动器 + 分派器（组装器）
 		return;
 	}
 
-	public static void PumpInput()
+	public static void PumpInput(Button input)
 	{
+		button = input;
 		if (mqttTransport is null || no is null || button is null) return;
 		while (mqttTransport.TryReceive(out string topic, out byte[] payload))
 		{

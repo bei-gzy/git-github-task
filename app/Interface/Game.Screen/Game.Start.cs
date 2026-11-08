@@ -1,4 +1,5 @@
 using App.GameStates;
+using App.KeyBoard;
 using App.Services;
 
 namespace App.Game.Screen;
@@ -29,9 +30,27 @@ class GameStart : HomeScreen
 
 			Func<GamePrepareArgs, Task>? runRound = WaitKey().Key switch
 			{
-				ConsoleKey.D1 => async gameArgs => { _ = await FuncSystem.GameRunSystemAsync(gameArgs); }
+				ConsoleKey.D1 => async gameArgs =>
+				{
+					await Round.RunAsync(args, new RoundContext(
+						"——————————————Welcome TO Snake Eat Game——————————————",
+						"法则:WASD控制方向,E加速(冷却5秒),Esc退出游戏",
+						[args.LocalInput],
+						new SingleRules()
+						));
+				}
 				,
-				ConsoleKey.D2 => async gameArgs => { _ = await LocalDoubleSystem.GameRunSystemAsync(gameArgs); }
+				ConsoleKey.D2 => async gameArgs =>
+				{
+					await Round.RunAsync(args, new RoundContext(
+						"————— 本机双人对战 —————",
+						"玩家1: W A S D / E 加速   玩家2: ↑ ↓ ← → / 0 加速   Esc 退出",
+						args.GuestInput is null
+							? [args.LocalInput]
+							: [args.LocalInput, args.GuestInput],
+						new DoubleRules()
+						));
+				}
 				,
 				ConsoleKey.D3 => null,
 				_ => null
