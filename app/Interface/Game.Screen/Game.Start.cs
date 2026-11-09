@@ -1,5 +1,4 @@
 using App.GameStates;
-using App.KeyBoard;
 using App.Services;
 
 namespace App.Game.Screen;
@@ -14,7 +13,8 @@ class GameStart : HomeScreen
 			"请选择游戏模式：",
 			"1. 单人模式",
 			"2. 本机双人",
-			"3. 返回主菜单"
+			"3. 网络多人",
+			"4. 返回主菜单"
 		];
 		foreach (string line in _)
 		{
@@ -28,31 +28,43 @@ class GameStart : HomeScreen
 		{
 			PrintChoose();
 
-			Func<GamePrepareArgs, Task>? runRound = WaitKey().Key switch
+			Func<Task>? runRound = WaitKey().Key switch//委托接受args，返回一个Task
 			{
-				ConsoleKey.D1 => async gameArgs =>
+				ConsoleKey.D1 => async () =>
 				{
 					await Round.RunAsync(args, new RoundContext(
 						"——————————————Welcome TO Snake Eat Game——————————————",
 						"法则:WASD控制方向,E加速(冷却5秒),Esc退出游戏",
 						[args.LocalInput],
-						new SingleRules()
+						new SingleRules(),
+						args.Renderer
 						));
 				}
 				,
-				ConsoleKey.D2 => async gameArgs =>
+				ConsoleKey.D2 => async () => _ = await LocalDoubleSystem.GameRunSystemAsync(args)
+				,
+				ConsoleKey.D3 => async () =>
 				{
-					await Round.RunAsync(args, new RoundContext(
-						"————— 本机双人对战 —————",
-						"玩家1: W A S D / E 加速   玩家2: ↑ ↓ ← → / 0 加速   Esc 退出",
-						args.GuestInput is null
-							? [args.LocalInput]
-							: [args.LocalInput, args.GuestInput],
-						new DoubleRules()
-						));
+					if (args.Session is not null)
+					{
+						await Round.RunAsync(args, new RoundContext(
+							"————— 本机双人对战 —————",
+							"玩家1: W A S D / E 加速   玩家2: ↑ ↓ ← → / 0 加速   Esc 退出",
+							args.GuestInput is null
+								? [args.LocalInput]
+								: [args.LocalInput, args.GuestInput],//空判断处理，或者自己补一个empty()
+							new DoubleRules(),
+							args.Renderer
+							));
+					}
+					else
+					{
+						Console.WriteLine("并没有联机");
+						return;
+					}
 				}
 				,
-				ConsoleKey.D3 => null,
+				ConsoleKey.D4 => null,
 				_ => null
 			};
 
@@ -66,11 +78,11 @@ class GameStart : HomeScreen
 				args.BeginRound();
 				try
 				{
-					await run(args);
+					await run();
 				}
 				finally
 				{
-					await args.EndRound();
+					args.EndRound();
 				}
 			}
 		}

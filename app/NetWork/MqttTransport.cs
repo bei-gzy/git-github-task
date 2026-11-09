@@ -32,8 +32,9 @@ public sealed class MqttTransport : IAsyncDisposable
 		client.ApplicationMessageReceivedAsync += e =>
 		{
 			//后台回调收包  放进线程给主线程后续调用
-			if ((inbox.Count > 256) && inbox.TryDequeue(out _))
-				inbox.Enqueue(new MqttMessage(e.ApplicationMessage.Topic, e.ApplicationMessage.Payload.ToArray()));
+			//收件箱上限：满了丢最旧；无论如何都要入队
+			if (inbox.Count > 256) _ = inbox.TryDequeue(out _);
+			inbox.Enqueue(new MqttMessage(e.ApplicationMessage.Topic, e.ApplicationMessage.Payload.ToArray()));
 			return Task.CompletedTask;
 		};
 

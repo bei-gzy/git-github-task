@@ -8,12 +8,17 @@ namespace App.NetWork;//局域网的串通
 
 public static class RemoteInput
 {
-	static Dictionary<string, ulong> LastTick { get; } = [];
+	static readonly Dictionary<string, ulong> LastTick = [];
+
 	public static void ReadRemoteInput(Button button, string roomId, PlayerInput input)
 	{
-		if (input.ClientTick < LastTick[input.PlayerId] && LastTick[input.PlayerId] < 0) return;//存旧包，作比较，更新新包
-		LastTick[input.PlayerId] = input.ClientTick;
 		if (input.RoomId != roomId) return;
+
+		//去重：只应用“更新的”包；第一次收到时字典里没有这个玩家
+		if (LastTick.TryGetValue(input.PlayerId, out ulong last) && input.ClientTick <= last)
+			return;
+		LastTick[input.PlayerId] = input.ClientTick;
+
 		foreach (var key in ToKey(input))
 		{
 			button.TouchClick(new ConsoleKeyInfo('\0', key, false, false, false));

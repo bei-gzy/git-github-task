@@ -1,9 +1,9 @@
 using App.Game.Screen;
 using App.World;
-using App.NetWork;
 
 namespace App.Services;
 
+//本机双人：只负责“组装”（建玩家2、绑第二套按键），流程交给 Round
 class LocalDoubleSystem
 {
 	public static async Task<bool> GameRunSystemAsync(GamePrepareArgs args)
@@ -28,56 +28,18 @@ class LocalDoubleSystem
 		p1.ResetForNewGame(10, world.Height / 3, State.Direction.Down);
 		p2.ResetForNewGame(world.Width - 11, world.Height * 2 / 3, State.Direction.Up);
 
-		var p1Input = args.LocalInput;
 		var p2Input = args.EnableGuestInput(p2, State.Direction.Up);
 
-		var tick = TimeSpan.FromMilliseconds(world.TickMilliseconds);
-		using var timer = new PeriodicTimer(tick);
-
-		while (!world.IsOver)
-		{
-			while (Console.KeyAvailable)
-				args.Button.TouchClick(Console.ReadKey(intercept: true));
-			NetHost.PumpInput(args.Button);
-			lock (world.Lock)//上锁
-			{
-				if (world.QuitRequired) break;
-
-				world.UpdateTime(tick);
-				if (world.IsOver) break;
-
-				world.UpdateFood(tick);
-
-				p1.MSnake.Nextdir = p1Input.Direction;
-				p2.MSnake.Nextdir = p2Input.Direction;
-				p1.Skills.MoveMode(world, p1);
-				p2.Skills.MoveMode(world, p2);
-
-				foreach (var p in world.Players)
-				{
-					if (p.IsAlive)
-						args.Collision.TouchCollision(p, world);
-				}
-			}
-
-			Draw(world);
-
-			if (world.IsOver) break;
-
-			if (!await timer.WaitForNextTickAsync()) break;
-		}
+		await Round.RunAsync(args, new RoundContext(
+			"玩家1: W A S D / E 加速   玩家2: ↑ ↓ ← → / 0 加速   Esc 退出",
+			"————— 本机双人对战 —————",
+			[args.LocalInput, p2Input],
+			new DoubleRules(),
+			args.Renderer));
 
 		p1.RecordSurvivalTime(world.ElapsedTime);
 		p2.RecordSurvivalTime(world.ElapsedTime);
 
-		if (!world.QuitRequired)
-			DefeatSystem.DoubleEndSystem(p1, p2, world);
-
 		return !world.QuitRequired;
 	}
-
-	static void Draw(GameWorld world) => MapPrinter.Draw(world.Snapshot(),
-		"————— 本机双人对战 —————",
-		"玩家1: W A S D / E 加速   玩家2: ↑ ↓ ← → / 0 加速   Esc 退出"
-		);
 }

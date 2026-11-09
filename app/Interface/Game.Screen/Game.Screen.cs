@@ -1,5 +1,7 @@
 using App.Config;
 using App.GameStates;
+using App.NetWork;
+using App.Services;
 
 namespace App.Game.Screen;
 
@@ -27,9 +29,9 @@ class HomeScreen
 
 	public static ConsoleKeyInfo WaitKey() => Console.ReadKey(intercept: true);
 
-	public static async Task ScreenFuncSystem(GameState gameRunningState, GameSettings gameSettings)
+	public static async Task ScreenFuncSystem(GameState gameRunningState, GameSettings gameSettings, NetSession? session, IRenderer renderer, IRoundResultView resultView)
 	{
-		var args = new GamePrepareArgs(gameSettings);
+		var args = new GamePrepareArgs(gameSettings, session, renderer, resultView);
 		hstate = GameState.HomeScreenState.Choosegamemode;
 
 		while (hstate is GameState.HomeScreenState.Choosegamemode)

@@ -1,17 +1,20 @@
+using App.World;
 using App.Services;
 
+using System.Globalization;
 using System.Text;
 
-namespace App.World;
+namespace App.Rendering;
 
-public static class MapPrinter
+//快照->字符串   纯函数
+public static class FrameComposer
 {
 	static readonly (char Head, char Body)[] Styles =
 	[
 		('☻', '◊'), ('☺', '○'), ('♥', '♦'), ('★', '☆')
 	];
 
-	public static void PrintMap(WorldSnapShot ws)
+	static void PrintMap(WorldSnapShot ws, StringBuilder sb)
 	{
 		if (ws.Width * ws.Height is < 100 or > 5000
 			|| ws.Players.Count > 8
@@ -21,7 +24,6 @@ public static class MapPrinter
 		for (int i = 0; i < ws.Players.Count; i++)
 			bodies[i] = [.. ws.Players[i].Segments];//new HashSet<State.Point>(~~)
 
-		var sb = new StringBuilder(ws.Width * ws.Height + ws.Height);
 		char c;
 		for (int y = 0; y < ws.Height; y++)
 		{
@@ -56,31 +58,32 @@ public static class MapPrinter
 
 			_ = sb.AppendLine();
 		}
-
-		Console.Write(sb.ToString());
 	}
 
-	public static void PrintHud(WorldSnapShot ws)
+	static void PrintHud(WorldSnapShot ws, StringBuilder sb)
 	{
 		for (int i = 0; i < ws.Players.Count; i++)
 		{
 			var p = ws.Players[i];
 			char head = Styles[i % Styles.Length].Head;
 			string name = string.IsNullOrWhiteSpace(p.Name) ? $"玩家{i + 1}" : p.Name;
-			Console.WriteLine($"{head} {name}: {p.Score} 分 长度 {p.Segments.Count} {(p.IsAlive ? "存活" : "死亡")}");
+			_ = sb.AppendLine(CultureInfo.InvariantCulture, $"{head} {name}: {p.Score} 分 长度 {p.Segments.Count} {(p.IsAlive ? "存活" : "死亡")}");
 		}
 
-		Console.WriteLine($"剩余 {ws.RemainingSeconds:F0} 秒 食物 {ws.Foods.Count} 个");
+		_ = sb.AppendLine(CultureInfo.InvariantCulture, $"剩余 {ws.RemainingSeconds:F0} 秒 食物 {ws.Foods.Count} 个");
 	}
 
-	public static void Draw(WorldSnapShot snapShot, string title, string? hint = null)
+	public static string Draw(WorldSnapShot ws, string title, string? hint = null)
 	{
-		Console.Clear();
-		Console.WriteLine(title);
-		Console.WriteLine(hint);
-		Console.WriteLine();
+		var sb = new StringBuilder(ws.Width * ws.Height + ws.Height);
 
-		PrintMap(snapShot);
-		PrintHud(snapShot);
+		_ = sb.AppendLine(title);
+		if (!string.IsNullOrEmpty(hint))
+			_ = sb.AppendLine(hint);
+		_ = sb.AppendLine();
+
+		PrintMap(ws, sb);
+		PrintHud(ws, sb);
+		return sb.ToString();
 	}
 }

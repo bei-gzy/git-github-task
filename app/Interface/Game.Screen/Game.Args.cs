@@ -31,8 +31,18 @@ public class GamePrepareArgs
 
 	internal CollisionController CollisionController { get; }
 
-	public GamePrepareArgs(GameSettings gameSettings)
+	//网络层调用中枢
+	public NetSession? Session { get; }
+
+	//打印
+	public IRenderer Renderer { get; }
+	//结算
+	public IRoundResultView ResultView { get; }
+
+	public GamePrepareArgs(GameSettings gameSettings, NetSession? session, IRenderer renderer, IRoundResultView resultView)
 	{
+		Renderer = renderer;
+		ResultView = resultView;
 		local = PlayerRegisterInterface.CurrentPlayer ?? new Player("local");
 		GameWorld = new GameWorld(gameSettings);
 		Player = local;
@@ -40,6 +50,7 @@ public class GamePrepareArgs
 		LocalInput = new KeyBoardController(Button, Player, KeyLayout.Wasd, ConsoleKey.E);
 		quit = new QuitController(Button, GameWorld);
 		CollisionController = new CollisionController(Collision);
+		Session = session;
 	}
 
 	public void BeginRound()
@@ -49,12 +60,12 @@ public class GamePrepareArgs
 		LocalInput.Begin(State.Direction.Down);
 		quit.Begin();
 		CollisionController.Subscribe();
-		NetHost.StartSnapShot(GameWorld);
+		Session?.PublishSnapShot(GameWorld);
 	}
 
-	public async Task EndRound()
+	public void EndRound()
 	{
-		await NetHost.DetachAsync();
+		Session?.StopSnapShot();
 		LocalInput.End();
 		GuestInput?.End();
 		GuestInput = null;
