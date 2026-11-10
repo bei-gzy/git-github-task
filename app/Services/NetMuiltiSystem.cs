@@ -1,4 +1,4 @@
-using App.Game.Screen;
+using App.Interface;
 using App.World;
 
 namespace App.Services;

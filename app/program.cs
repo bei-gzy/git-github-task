@@ -1,7 +1,5 @@
 using App.Config;
 using App.Interface;
-using App.Game.Screen;
-using App.GameStates;
 using App.NetWork;
 using App.Rendering;
 using App.Services;
@@ -23,7 +21,7 @@ try
 		if (session is null) return;
 		if (netOptions.NetMode is not NetMode.Host)
 		{
-			await NetLoop.RunAsync(session, renderer, async () => ClientReadKey.Poll());
+			await NetLoop.RunAsync(session, renderer, ClientReadKey.Poll);
 			return;
 		}
 	}

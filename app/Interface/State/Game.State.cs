@@ -1,4 +1,4 @@
-namespace App.GameStates;
+namespace App.Interface;
 
 public class GameState
 {

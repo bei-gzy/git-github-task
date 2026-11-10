@@ -38,7 +38,7 @@ public sealed class NetLoop
 			renderer.Draw(ws, $"————— 观战  房间={latest.RoomId}  tick={latest.ServerTick} —————");
 	}
 
-	public static async Task RunAsync(NetSession ns, IRenderer renderer, Func<PlayerIntent>? poll)
+	public static async Task RunAsync(NetSession ns, IRenderer renderer, Func<PlayerIntent?>? poll)
 	{
 		if (ns is null) return;
 		var no = ns.NetOptions;
@@ -51,7 +51,7 @@ public sealed class NetLoop
 		}
 	}
 
-	public static async Task RunClientAsync(NetSession ns, IRenderer renderer, Func<PlayerIntent>? poll = null)
+	public static async Task RunClientAsync(NetSession ns, IRenderer renderer, Func<PlayerIntent?>? poll = null)
 	{
 		Console.WriteLine($"[Client]已加入房间 {ns.NetOptions!.Room},WASD 操控玩家2,Q 退出");
 		using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));

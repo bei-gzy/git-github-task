@@ -1,4 +1,3 @@
-using App.Game.Register;
 using App.Services;
 using App.GameCollision;
 using App.KeyBoard;
@@ -6,7 +5,7 @@ using App.Config;
 using App.World;
 using App.NetWork;
 
-namespace App.Game.Screen;
+namespace App.Interface;
 
 public class GamePrepareArgs
 {

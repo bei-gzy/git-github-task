@@ -11,11 +11,4 @@ public class State
 		Left,
 		Right
 	}
-
-	public enum GamingState
-	{
-		GamingStateRunning,
-		GamingGameover,
-		Exite
-	}
 }

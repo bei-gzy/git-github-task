@@ -1,6 +1,6 @@
 using App.World;
 
-namespace App.Game.Screen;
+namespace App.Interface;
 
 class RoomPlayerLists
 {

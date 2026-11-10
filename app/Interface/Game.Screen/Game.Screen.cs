@@ -1,9 +1,8 @@
 using App.Config;
-using App.GameStates;
 using App.NetWork;
 using App.Services;
 
-namespace App.Game.Screen;
+namespace App.Interface;
 
 class HomeScreen
 {

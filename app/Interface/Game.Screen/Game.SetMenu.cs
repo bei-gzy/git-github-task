@@ -1,7 +1,6 @@
 using App.GameTime;
-using App.GameStates;
 
-namespace App.Game.Screen;
+namespace App.Interface;
 
 class GameSetMenu : HomeScreen
 {

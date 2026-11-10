@@ -1,7 +1,6 @@
-using App.GameStates;
 using App.Services;
 
-namespace App.Game.Screen;
+namespace App.Interface;
 
 class GameStart : HomeScreen
 {

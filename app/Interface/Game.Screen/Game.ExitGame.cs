@@ -1,5 +1,4 @@
-using App.GameStates;
-namespace App.Game.Screen;
+namespace App.Interface;
 
 class GameExitGame : HomeScreen
 {
