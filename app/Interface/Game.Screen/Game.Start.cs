@@ -41,28 +41,9 @@ class GameStart : HomeScreen
 						));
 				}
 				,
-				ConsoleKey.D2 => async () => _ = await LocalDoubleSystem.GameRunSystemAsync(args)
+				ConsoleKey.D2 => async () => await LocalDoubleSystem.GameRunSystemAsync(args)
 				,
-				ConsoleKey.D3 => async () =>
-				{
-					if (args.Session is not null)
-					{
-						await Round.RunAsync(args, new RoundContext(
-							"————— 本机双人对战 —————",
-							"玩家1: W A S D / E 加速   玩家2: ↑ ↓ ← → / 0 加速   Esc 退出",
-							args.GuestInput is null
-								? [args.LocalInput]
-								: [args.LocalInput, args.GuestInput],//空判断处理，或者自己补一个empty()
-							new DoubleRules(),
-							args.Renderer
-							));
-					}
-					else
-					{
-						Console.WriteLine("并没有联机");
-						return;
-					}
-				}
+				ConsoleKey.D3 => async () => await NetMuiltiSystem.RunAsync(args)
 				,
 				ConsoleKey.D4 => null,
 				_ => null

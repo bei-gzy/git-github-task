@@ -13,7 +13,7 @@ public sealed class ConsoleRenderer(TextWriter tw) : IRenderer//文本输出，�
 	}
 }
 
-public sealed class ConsoleResultView(TextWriter tw, TextReader tr) : IRoundResultView
+public sealed class ConsoleResultView(TextWriter tw) : IRoundResultView
 {
 	public void ShowResult(RoundResult result)
 	{
@@ -25,5 +25,10 @@ public sealed class ConsoleResultView(TextWriter tw, TextReader tr) : IRoundResu
 		tw.WriteLine("按下任意健继续");
 	}
 
-	public void WaitForNext() => tr.Read();//读取用户按键
+	public void WaitForNext()
+	{
+		while (Console.KeyAvailable)
+			_ = Console.ReadKey(intercept: true);
+		_ = Console.ReadKey(intercept: true);
+	}
 }

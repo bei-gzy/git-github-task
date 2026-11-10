@@ -1,6 +1,6 @@
 using App.World;
 
-namespace App.Game.Register;
+namespace App.Interface;
 
 class PlayerRegisterInterface
 {

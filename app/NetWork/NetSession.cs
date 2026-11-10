@@ -1,6 +1,5 @@
 using App.Protocol;
 using App.World;
-using App.KeyBoard;
 
 namespace App.NetWork;
 
@@ -17,21 +16,25 @@ public sealed class NetSession(MqttTransport mt, NetOptions no) : IAsyncDisposab
 	public NetOptions? NetOptions { get; } = no;
 	SnapshotPump? pump;//发布
 	Task? snapShotTask;
-	Button? button;
 	public ulong ClientTick { get; private set; }
-
 	public void NextClentTick() => ClientTick++;
 
-	public static async Task<NetSession> StartAsync(NetOptions no)//通过异步完成初始化并完成连接和订阅
+	public static async Task<NetSession?> StartAsync(NetOptions no)//通过异步完成初始化并完成连接和订阅
 	{
 		//房间名 + “-” + 32位无连字符GUID  ：N不带连字符   表达时 ： [..18]范围运算符，也叫格式
 		var mt = new MqttTransport($"{no.Room}-{Guid.NewGuid().ToString("N")[..18]}")
 		{
 			Log = Console.WriteLine
 		};
-		if (await mt.ConnectAsync(no.BrokerHost, no.BrokerPort))
+		if (!await mt.ConnectAsync(no.BrokerHost, no.BrokerPort)) return null;
+		try
 		{
 			await mt.SubscribeAsync(default, $"snake/{no.Room}/#");
+		}
+		catch
+		{
+			await mt.DisposeAsync();
+			return null;
 		}
 
 		return new NetSession(mt, no);
@@ -45,17 +48,18 @@ public sealed class NetSession(MqttTransport mt, NetOptions no) : IAsyncDisposab
 		//"[host]开始广播快照"
 	}
 
-	public void PumpInput(Button input)
+	public bool PumpInput(out PlayerInput input)
 	{
-		button = input;
-		if (Transport is null || NetOptions is null || button is null) return;
+		input = default!;
+		if (Transport is null || NetOptions is null) return false;
 		while (Transport.TryReceive(out string topic, out byte[] payload))
 		{
 			if (!topic.EndsWith("/input", StringComparison.Ordinal)) continue;
+			if (payload.Length is 0 or >= 65536) continue;
 			try
 			{
-				if (button is not null && payload.Length is > 0 and < 65536)
-					RemoteInput.ReadRemoteInput(button, NetOptions.Room, PlayerInput.Parser.ParseFrom(payload));
+				input = PlayerInput.Parser.ParseFrom(payload);
+				return true;
 			}
 			catch
 			{
@@ -63,6 +67,8 @@ public sealed class NetSession(MqttTransport mt, NetOptions no) : IAsyncDisposab
 				payload.AsSpan().Clear();
 			}
 		}
+
+		return false;
 	}
 
 	public void StopSnapShot()
@@ -77,14 +83,13 @@ public sealed class NetSession(MqttTransport mt, NetOptions no) : IAsyncDisposab
 		try
 		{
 			if (snapShotTask is not null)
-				await snapShotTask.ConfigureAwait(false);
+				await snapShotTask.ConfigureAwait(false);//表示后续快照不用回到原调用出的上下文
 		}
 		finally
 		{
 			try
 			{
-				pump?.Dispose();
-				pump = null;
+				StopSnapShot();
 				NetOptions?.ReSet();
 			}
 			finally

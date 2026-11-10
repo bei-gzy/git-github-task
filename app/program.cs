@@ -1,5 +1,5 @@
 using App.Config;
-using App.Game.Register;
+using App.Interface;
 using App.Game.Screen;
 using App.GameStates;
 using App.NetWork;
@@ -16,13 +16,14 @@ try
 	await GameRegisterSystem.UseRegister();
 	var netOptions = NetOptions.Parse(args, gameSettings.NetWorkConfig.RoomId);//args是运行时传进的参数
 	IRenderer renderer = new ConsoleRenderer(Console.Out);
-	IRoundResultView resultView = new ConsoleResultView(Console.Out, Console.In);
+	IRoundResultView resultView = new ConsoleResultView(Console.Out);
 	if (netOptions.NetMode is not NetMode.None)
 	{
 		session = await NetSession.StartAsync(netOptions);
+		if (session is null) return;
 		if (netOptions.NetMode is not NetMode.Host)
 		{
-			await NetLoop.RunAsync(session, renderer);
+			await NetLoop.RunAsync(session, renderer, async () => ClientReadKey.Poll());
 			return;
 		}
 	}

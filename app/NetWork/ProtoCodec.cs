@@ -73,7 +73,7 @@ public static class ProtoCodec
 		s.RemainingSeconds,
 		s.IsGameOver);
 
-	static Direction ToProtoDirection(State.Direction d) => d switch
+	public static Direction ToProtoDirection(State.Direction d) => d switch
 	{
 		State.Direction.Up => Direction.Up,
 		State.Direction.Down => Direction.Down,

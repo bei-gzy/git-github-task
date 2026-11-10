@@ -2,7 +2,6 @@ using App.World;
 
 namespace App.Game.Screen;
 
-//房间座位表：0.8 联机建房/加入时用，现在本机双人也会过一遍
 class RoomPlayerLists
 {
 	public const int PlayerMaxCount = 2;

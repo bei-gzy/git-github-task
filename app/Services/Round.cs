@@ -1,5 +1,4 @@
 using App.Game.Screen;
-using App.KeyBoard;
 
 namespace App.Services;
 
@@ -7,7 +6,7 @@ public sealed record RoundContext
 (
 	string? Hint,
 	string Title,
-	IReadOnlyList<KeyBoardController> Inputs,
+	IReadOnlyList<IInputSource> Inputs,
 	IRoundRules Rules,
 	IRenderer Renderer
 );
@@ -26,16 +25,22 @@ public static class Round
 		{
 			while (Console.KeyAvailable)
 				args.Button.TouchClick(Console.ReadKey(intercept: true));
-			args.Session?.PumpInput(args.Button);
+			args.PumpInput();
 			if (world.QuitRequired) break;
 			lock (world.Lock)
 			{
 				world.UpdateTime(tick);
 				if (world.IsOver) break;
+
+				var intents = new PlayerIntent[players.Count];
+				for (int i = 0; i < players.Count; i++)
+					intents[i] = rct.Inputs[i].Poll();
+
 				for (int i = 0; i < players.Count && i < rct.Inputs.Count; i++)
 				{
 					var p = players[i];
-					p.MSnake.Nextdir = rct.Inputs[i].Direction;
+					p.MSnake.Nextdir = intents[i].Direction;
+					p.IsTouchButton = intents[i].IsDash;
 					p.Skills.MoveMode(world, p);
 				}
 

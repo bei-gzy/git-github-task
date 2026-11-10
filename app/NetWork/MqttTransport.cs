@@ -81,7 +81,7 @@ public sealed class MqttTransport : IAsyncDisposable
 		}
 
 		//记录
-		Log?.Invoke($"[mqtt]已连接 {host}:{port} clientID = {clientID}");
+		//Log?.Invoke($"[mqtt]已连接 {host}:{port} clientID = {clientID}");
 		return true;
 	}
 
@@ -111,7 +111,7 @@ public sealed class MqttTransport : IAsyncDisposable
 			}
 		}
 
-		Log?.Invoke($"[mqtt] 订阅 {string.Join(", ", topics)}");
+		//Log?.Invoke($"[mqtt] 订阅 {string.Join(", ", topics)}");
 	}
 
 	//序列化 对象 --> 二进制字节数组

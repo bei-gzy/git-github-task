@@ -28,6 +28,15 @@ sealed class DoubleRules : IRoundRules
 	public bool IsGameOver(GameWorld world, IReadOnlyList<Player> players) => world.IsOver || players.Any(x => !x.IsAlive);
 	public RoundResult Result(GameWorld world, IReadOnlyList<Player> players)
 	{
+		if (players.Count < 2)
+		{
+			return new RoundResult(true, [
+				"————— 对局结束 —————",
+				"等待玩家2加入…",
+				$"用时 {world.ElapsedTime.TotalSeconds:F1} 秒"
+			]);
+		}
+
 		var p1 = players[0];
 		var p2 = players[1];
 		var winner = Winner(p1, p2);
