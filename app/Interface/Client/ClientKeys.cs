@@ -1,5 +1,4 @@
 using App.Services;
-using App.Protocol;
 
 namespace App.Interface;
 
@@ -15,27 +14,18 @@ public static class ClientReadKey
 
 			var (dir, dash) = key switch
 			{
-				ConsoleKey.W or ConsoleKey.UpArrow => (Direction.Up, false),
-				ConsoleKey.S or ConsoleKey.DownArrow => (Direction.Down, false),
-				ConsoleKey.A or ConsoleKey.LeftArrow => (Direction.Left, false),
-				ConsoleKey.D or ConsoleKey.RightArrow => (Direction.Right, false),
-				ConsoleKey.E or ConsoleKey.NumPad0 => (Direction.Unspecified, true),
-				_ => (Direction.Unspecified, false)
+				ConsoleKey.W or ConsoleKey.UpArrow => (State.Direction.Up, false),
+				ConsoleKey.S or ConsoleKey.DownArrow => (State.Direction.Down, false),
+				ConsoleKey.A or ConsoleKey.LeftArrow => (State.Direction.Left, false),
+				ConsoleKey.D or ConsoleKey.RightArrow => (State.Direction.Right, false),
+				ConsoleKey.E or ConsoleKey.NumPad0 => ((State.Direction?)null, true),
+				_ => ((State.Direction?)null, false)
 			};
 
-			if (!dash && dir is Direction.Unspecified) continue;
-			last = new PlayerIntent(ToState(dir), dash);
+			if (!dash && dir is null) continue;
+			last = new PlayerIntent(dir, dash);
 		}
 
 		return last;
 	}
-
-	static State.Direction ToState(Direction d) => d switch
-	{
-		Direction.Up => State.Direction.Up,
-		Direction.Down => State.Direction.Down,
-		Direction.Left => State.Direction.Left,
-		Direction.Right => State.Direction.Right,
-		_ => State.Direction.Up
-	};
 }
