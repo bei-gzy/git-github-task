@@ -1,6 +1,5 @@
-using App.World;
 
-namespace App.Interface;
+namespace App.Application.UI;
 
 class PlayerRegisterInterface
 {

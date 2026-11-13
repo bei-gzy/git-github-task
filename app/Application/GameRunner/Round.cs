@@ -39,7 +39,7 @@ public static class Round
 				for (int i = 0; i < players.Count && i < rct.Inputs.Count; i++)
 				{
 					var p = players[i];
-					p.MSnake.Nextdir = intents[i].Direction;
+					p.MSnake.ChangeDirection(intents[i].Direction);
 					p.IsTouchButton = intents[i].IsDash;
 					p.Skills.MoveMode(world, p);
 				}

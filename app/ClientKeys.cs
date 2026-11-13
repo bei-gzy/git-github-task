@@ -18,12 +18,12 @@ public static class ClientReadKey
 				ConsoleKey.S or ConsoleKey.DownArrow => (State.Direction.Down, false),
 				ConsoleKey.A or ConsoleKey.LeftArrow => (State.Direction.Left, false),
 				ConsoleKey.D or ConsoleKey.RightArrow => (State.Direction.Right, false),
-				ConsoleKey.E or ConsoleKey.NumPad0 => ((State.Direction?)null, true),
+				ConsoleKey.E or ConsoleKey.NumPad0 => (null, true),
 				_ => ((State.Direction?)null, false)
 			};
 
 			if (!dash && dir is null) continue;
-			last = new PlayerIntent(dir, dash);
+			last = new PlayerIntent(dir ?? State.Direction.Up, dash);
 		}
 
 		return last;

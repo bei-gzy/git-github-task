@@ -1,4 +1,3 @@
-using App.Services;
 using App.World;
 
 namespace App.Models;
@@ -30,19 +29,5 @@ public class Skills
 
 		p.IsTouchButton = false;
 		Move(p);
-	}
-
-	static void Move(Player p)
-	{
-		var head = p.MSnake.Head;
-		var nextLocation = p.MSnake.Nextdir switch
-		{
-			State.Direction.Up => new State.Point(head.X, head.Y - 1),
-			State.Direction.Down => new State.Point(head.X, head.Y + 1),
-			State.Direction.Left => new State.Point(head.X - 1, head.Y),
-			State.Direction.Right => new State.Point(head.X + 1, head.Y),
-			_ => head//不会走到这一步
-		};
-		p.MSnake.Snake.Add(nextLocation);
 	}
 }

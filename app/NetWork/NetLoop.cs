@@ -15,7 +15,7 @@ public sealed class NetLoop
 		{
 			if (topic.EndsWith("/hello", StringComparison.Ordinal))
 			{
-				Drain(ns, renderer);
+				Drain(ns, renderer);//单消耗
 				continue;
 			}
 

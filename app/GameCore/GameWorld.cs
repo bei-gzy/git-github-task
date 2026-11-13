@@ -52,52 +52,14 @@ public sealed class GameWorld
 		}
 	}
 
-	public bool IsWall(int x, int y) => x < 0 || y < 0 || x >= Width || y >= Height || Walls[y, x];
-
 	//食物
-	List<FoodItem> Foods { get; } = [];
-
-	public int FoodTarget => gameSettings.FoodConfig.GenerateFoodCount;
-
-	public FoodItem? FoodAt(int x, int y)
-	{
-		foreach (var food in Foods)
-		{
-			if (food.Position.X == x && food.Position.Y == y)
-				return food;
-		}
-
-		return null;
-	}
-
 	public void UpdateFood(TimeSpan delta)//输入时间变化值
 	{
 		timeLose += delta;
 		if (timeLose.TotalSeconds < gameSettings.FoodConfig.GenerateFoodSeconds)
 			return;
 		timeLose = TimeSpan.Zero;
-		GenerateFood();
 	}
-
-	public void GenerateFood()
-	{
-		while (Foods.Count < FoodTarget)
-		{
-			for (int guard = 0; guard < Width * Height; guard++)//总次数
-			{
-				int x = random.Next(1, Math.Max(2, Width - 1));
-				int y = random.Next(1, Math.Max(2, Height - 1));
-				if (IsWall(x, y) || FoodAt(x, y) is not null)
-					continue;
-				Foods.Add(new FoodItem(new State.Point(x, y), 1));
-				break;
-			}
-		}
-
-		if (Foods.Count == FoodTarget) return;
-	}
-
-	public void RemoveFood(int x, int y) => Foods.RemoveAll(food => food.Position.X == x && food.Position.Y == y);
 
 	//时间
 	public TimeSpan ElapsedTime { get; private set; }
@@ -135,17 +97,6 @@ public sealed class GameWorld
 
 	public Player? FindPlayer(string id) => players.FirstOrDefault(p => p.Id == id);
 
-	//状态
-	public bool IsOver { get; private set; }
-
-	public void MarkGameOver() => IsOver = true;
-
-	public bool QuitRequired { get; private set; }
-
-	public void QuitGame() => QuitRequired = true;
-
-	public ulong Tick { get; private set; }
-
 	//锁
 	public object Lock { get; } = new();
 
@@ -175,7 +126,7 @@ public sealed class GameWorld
 				playerSnapshots.Add(new PlayerSnapShot(
 					player.Id,
 					player.Name ?? "",
-					[.. player.MSnake.Snake],
+					[.. player.MSnake.Bodies],
 					player.MScore.MyScore,
 					player.IsAlive,
 					player.MSnake.Nextdir));

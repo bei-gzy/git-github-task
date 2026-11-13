@@ -1,4 +1,4 @@
-namespace App.Interface;
+namespace App.Application.UI;
 
 class GameRegisterSystem : PlayerRegisterInterface
 {

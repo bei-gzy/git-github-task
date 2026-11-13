@@ -1,6 +1,5 @@
-using App.World;
 
-namespace App.Services;
+namespace App.Ports;
 
 //端口
 public interface IRenderer

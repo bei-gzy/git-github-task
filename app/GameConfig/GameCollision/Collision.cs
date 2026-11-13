@@ -1,61 +1,25 @@
-using App.World;
+using App.GameCore;
 
 namespace App.GameCollision;
 
-public class CollisionArgs(Player player, GameWorld world)
+public class CollisionArgs(WorldState state)
 {
-	public Player Player { get; } = player;
-	public GameWorld World { get; } = world;
+	public WorldState WorldState { get; init; } = state;
 }
 
 public class Collision()
 {
 	public event EventHandler<CollisionArgs>? CollisionWhat;
 
-	public void TouchCollision(Player player, GameWorld world)
-	{
-		var args = new CollisionArgs(player, world);
-
-		OnCollisionWhat(args);
-	}
-
 	//触发事件
-	protected virtual void OnCollisionWhat(CollisionArgs ecollision) => CollisionWhat?.Invoke(this, ecollision);
+	protected virtual void TouchCollision(CollisionArgs ecollision) => CollisionWhat?.Invoke(this, ecollision);
 }
 
-public class CollisionController(Collision collision)
+public class CollisionController(Collision collision) : IDisposable
 {
-	public void Subscribe()
+	void CollisionWhat(object? sender, CollisionArgs e)
 	{
-		collision.CollisionWhat -= OnCollision;//先取消再订阅，important
-		collision.CollisionWhat += OnCollision;
 	}
 
-	public void Unsubscribe() => collision.CollisionWhat -= OnCollision;
-
-	void OnCollision(object? sender, CollisionArgs e)
-	{
-		bool hitWall = e.World.IsWall(e.Player.MSnake.Head.X, e.Player.MSnake.Head.Y);
-		bool hitSelf = e.Player.MSnake.Snake.Take(e.Player.MSnake.Snake.Count - 1).Contains(e.Player.MSnake.Head);
-		bool hitother = e.World.Players.Any(p => p != e.Player && p.IsAlive && p.MSnake.Snake.Contains(e.Player.MSnake.Head));
-
-		if (hitWall || hitSelf || hitother)
-		{
-			e.Player.IsAlive = false;
-			e.World.MarkGameOver();
-			return;
-		}
-
-		if (e.World.FoodAt(e.Player.MSnake.Head.X, e.Player.MSnake.Head.Y) is { } food)
-		{
-			e.World.RemoveFood(e.Player.MSnake.Head.X, e.Player.MSnake.Head.Y);
-			e.Player.MScore.AddScore(food);
-			e.World.GenerateFood();
-		}
-
-		else
-		{
-			e.Player.MSnake.Snake.RemoveAt(0);
-		}
-	}
+	public void Dispose() => collision.CollisionWhat -= CollisionWhat;
 }

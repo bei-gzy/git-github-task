@@ -2,7 +2,6 @@ using App.Config;
 using App.Interface;
 using App.NetWork;
 using App.Rendering;
-using App.Services;
 
 var gameSettings = GameSettingLoader.Load();
 var gameRunningState = new GameState();
@@ -27,10 +26,7 @@ try
 	}
 
 	while (gameRunningState.GameRunningState is GameState.GameOnAndOffState.GameOn)
-	{
-		//大厅：开始游戏、设置菜单、退出
 		await HomeScreen.ScreenFuncSystem(gameRunningState, gameSettings, session, renderer, resultView);
-	}
 }
 finally
 {
