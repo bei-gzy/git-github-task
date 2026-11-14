@@ -1,8 +1,6 @@
 using App.Protocol;
-using App.Services;
-using App.World;
 
-namespace App.NetWork;
+namespace App.Infrastructure.Proto;
 
 public static class ProtoCodec
 {

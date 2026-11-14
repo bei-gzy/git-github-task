@@ -1,7 +1,6 @@
 using App.Interface;
-using App.World;
 
-namespace App.Services;
+namespace App.Application.RoundRunner;
 
 //本机双人：只负责“组装”（建玩家2、绑第二套按键），流程交给 Round
 class LocalDoubleSystem

@@ -2,7 +2,7 @@ namespace App.GameCore.Models;
 
 public record Point(int X, int Y);
 
-public enum DirectionType
+public enum Direction
 {
 	Up,
 	Down,

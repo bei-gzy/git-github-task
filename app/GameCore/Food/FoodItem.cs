@@ -1,4 +1,4 @@
-global using App.GameCore.Models;
+using App.GameCore.Models;
 
 namespace App.GameCore.Food;
 

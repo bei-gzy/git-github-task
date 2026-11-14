@@ -1,6 +1,6 @@
 namespace App.GameCore.Models;
 
-public class SkillsType
+public class Skills
 {
 	public string? Name { get; init; }
 	public int Cost { get; init; }

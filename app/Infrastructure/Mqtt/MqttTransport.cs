@@ -4,7 +4,7 @@ using System.Collections.Concurrent;//线程安全并发合集
 using MQTTnet.Protocol;//定义通信库的规则的语言
 using MQTTnet;//第三方通信库
 
-namespace App.NetWork;
+namespace App.Infrastructure.Mqtt;
 
 //包的内容：主题+载荷
 public readonly record struct MqttMessage(string Topic, byte[] PayLoad);

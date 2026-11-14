@@ -1,6 +1,4 @@
-using App.Interface;
-
-namespace App.Services;
+namespace App.Application.GameRunner;
 
 public sealed record RoundContext
 (

@@ -1,3 +1,5 @@
+using App.GameCore.Models;
+
 namespace App.GameCore.Food;
 
 public static class FoodRules//纯生成和销毁
@@ -19,5 +21,5 @@ public static class FoodRules//纯生成和销毁
 		return null;
 	}
 
-	public static FoodItem RemoveEatenFood(Point head, WorldState state) => state.Foods.FirstOrDefault(f => f.Position == head);
+	public static FoodItem RemoveEatenFood(Point head, WorldState w) => w.Foods.FirstOrDefault(f => f.Position == head);
 }

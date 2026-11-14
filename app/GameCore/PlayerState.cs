@@ -1,4 +1,3 @@
-
 namespace App.GameCore;
 
 public sealed record PlayerState(
