@@ -1,51 +1,61 @@
+using App.GameCore.Food;
+using App.GameCore;
 using App.Protocol;
+
+using DomainPoint = App.GameCore.Models.Point;
+using DomainDirection = App.GameCore.Models.Direction;
+using DomainSnake = App.GameCore.SnakeState;
+using DomainPlayer = App.GameCore.PlayerState;
 
 namespace App.Infrastructure.Proto;
 
 public static class ProtoCodec
 {
-	public static PlayerInput ToProtoInput(NetOptions no, bool isDash, Direction dir, ulong clentTick)
+	//输入（来自客户端）
+	public static Protocol.PlayerInput ToProtoInput(NetOptions no, bool isDash, DomainDirection dir, ulong clientTick) => new()
 	{
-		var input = new PlayerInput
-		{
-			RoomId = no.Room,
-			PlayerId = no.Name,
-			ClientTick = ++clentTick,
-			UseDash = isDash,
-			Direction = dir
-		};
+		RoomId = no.Room,
+		PlayerId = no.Name,
+		ClientTick = clientTick,
+		UseDash = isDash,
+		Direction = ToProtoDirection(dir)
+	};
 
-		return input;
-	}
-
-	public static GameState ToProtoState(WorldSnapShot gss, string roomId)
+	//服务器发
+	public static GameState ToProtoState(WorldState w, string roomId)
 	{
 		var msg = new GameState
 		{
 			RoomId = roomId,
-			ServerTick = gss.Tick,
-			Width = gss.Width,
-			Height = gss.Height,
-			RemainingSeconds = gss.RemainingSeconds,
-			IsGameOver = gss.IsOver
+			ServerTick = w.Tick,
+			MaxTick = w.MaxTick,
+			Width = w.Width,
+			Height = w.Height,
+			FoodNum = w.FoodNum,
+			IsOverTime = w.OverTime,
+			RemainingSeconds = w.RemainingSeconds,
 		};
 
-		msg.Players.AddRange(gss.Players.Select(p =>
+		msg.Players.AddRange(w.Players.Select(p =>
 		{
-			var player = new PlayerState
+			var player = new Protocol.PlayerState
 			{
 				PlayerId = p.Id,
 				Name = p.Name,
 				Score = p.Score,
-				IsAlive = p.IsAlive,
-				Direction = ToProtoDirection(p.Direction)
-			};
+				SurvivalTime = p.SurvivalTime,
+				Snake = new Protocol.SnakeState
+				{
+					Direction = ToProtoDirection(p.Snake.Direction),
+					IsAlive = p.Snake.IsAlive
 
-			player.SnakeSegments.AddRange(p.Segments.Select(s => new Point { X = s.X, Y = s.Y }));
+				}
+			};
+			player.Snake.Body.AddRange(p.Snake.Body.Select(s => new Point { X = s.X, Y = s.Y }));
 			return player;
 		}));
 
-		msg.Foods.AddRange(gss.Foods.Select(f => new FoodState
+		msg.Foods.AddRange(w.Foods.Select(f => new FoodState
 		{
 			Position = new Point { X = f.Position.X, Y = f.Position.Y },
 			FoodType = f.Type
@@ -54,38 +64,58 @@ public static class ProtoCodec
 		return msg;
 	}
 
-	public static WorldSnapShot FromProtoState(GameState s) => new(
-		s.ServerTick,
-		s.Width,
-		s.Height,
-		[.. s.Players.Select(p => new PlayerSnapShot(
+	//客户端收
+	public static WorldState FromProtoState(GameState s)
+	{
+		var players = s.Players.Select(p => new DomainPlayer(
 			p.PlayerId,
 			p.Name,
-			[.. p.SnakeSegments.Select(pt => new State.Point(pt.X, pt.Y))],
+			new DomainSnake(
+				[.. p.Snake.Body.Select(pt => new DomainPoint(
+					pt.X,
+					pt.Y
+				))],
+				FromProtoDirection(p.Snake.Direction),
+				p.Snake.Body.Count,
+				p.Snake.IsAlive
+			),
 			p.Score,
-			p.IsAlive,
-			FromProtoDirection(p.Direction)))],
-		[.. s.Foods.Select(f => new FoodSnapShot(
-			new State.Point(f.Position.X, f.Position.Y),
-			f.FoodType))],
-		s.RemainingSeconds,
-		s.IsGameOver);
+			p.SurvivalTime
+		)).ToList();
 
-	public static Direction ToProtoDirection(State.Direction d) => d switch
+		var foods = s.Foods.Select(f => new FoodItem
+		{
+			Position = new DomainPoint(f.Position.X, f.Position.Y),
+			Type = f.FoodType
+		}).ToList();
+
+		return new WorldState(
+			s.ServerTick,
+			s.MaxTick,
+			s.Width,
+			s.Height,
+			players,
+			foods,
+			s.FoodNum,
+			s.RemainingSeconds
+		);
+	}
+
+	static Direction ToProtoDirection(DomainDirection d) => d switch
 	{
-		State.Direction.Up => Direction.Up,
-		State.Direction.Down => Direction.Down,
-		State.Direction.Left => Direction.Left,
-		State.Direction.Right => Direction.Right,
+		DomainDirection.Up => Direction.Up,
+		DomainDirection.Down => Direction.Down,
+		DomainDirection.Left => Direction.Left,
+		DomainDirection.Right => Direction.Right,
 		_ => Direction.Unspecified
 	};
 
-	static State.Direction FromProtoDirection(Direction d) => d switch
+	static DomainDirection FromProtoDirection(Direction d) => d switch
 	{
-		Direction.Up => State.Direction.Up,
-		Direction.Down => State.Direction.Down,
-		Direction.Left => State.Direction.Left,
-		Direction.Right => State.Direction.Right,
-		_ => State.Direction.Down
+		Direction.Up => DomainDirection.Up,
+		Direction.Down => DomainDirection.Down,
+		Direction.Left => DomainDirection.Left,
+		Direction.Right => DomainDirection.Right,
+		_ => DomainDirection.Down
 	};
 }

@@ -1,8 +1,42 @@
-using App.Interface;
-
 namespace App.Application.RoundRunner;
 
-//本机双人：只负责“组装”（建玩家2、绑第二套按键），流程交给 Round
+public sealed class GameRunSystemAsync
+{
+	public
+}
+
+
+public sealed class NetMuiltiSystem
+{
+	public static async Task RunAsync(WorldState w)
+	{
+		if (Session is null)
+		{
+			Console.WriteLine("并没有联机");
+			_ = Console.ReadKey(intercept: true);
+			return;
+		}
+
+		var world = args.GameWorld;
+		var p1 = args.Player;
+		var p2 = world.FindPlayer("guest") ?? new Player("guest");
+		if (world.FindPlayer(p2.Id) is null)
+			p2 = world.AddPlayer(p2);
+
+		p1.ResetForNewGame(10, world.Height / 3, State.Direction.Down);
+		p2.ResetForNewGame(world.Width - 11, world.Height * 2 / 3, State.Direction.Up);
+
+		var p2Input = args.EnableGuestInput(State.Direction.Up);
+
+		await Round.RunAsync(args, new RoundContext(
+			null,
+			"玩家1: W A S D / E 加速   玩家2: ↑ ↓ ← → / 0 加速   Esc 退出",
+			[args.LocalInput, p2Input],
+			new DoubleRules(),
+			args.Renderer));
+	}
+}
+
 class LocalDoubleSystem
 {
 	public static async Task GameRunSystemAsync(GamePrepareArgs args, string title = "————— 本机双人对战 —————")

@@ -3,21 +3,26 @@ using App.GameCore.Models;
 
 namespace App.InputAndOutput;
 
-public sealed class LocalInput
+public sealed class LocalInput(string id, CancellationTokenSource cts) : IInputSource
 {
-	public PlayerIntent? Capture()
+	public PlayerInput? Capture()
 	{
 		PlayerIntent? last = null;
 		while (Console.KeyAvailable)
 		{
 			var key = Console.ReadKey(intercept: true).Key;
-			if (key is ConsoleKey.Escape) return null;
+
+			if (key is ConsoleKey.Escape)
+			{
+				cts.Cancel();
+				return null;//仍然返回空是因为和ToIntent做统一
+			}
+
 			last = ToIntent(key);
 		}
 
-		return last;
+		return last is null ? null : new PlayerInput(last, id);
 	}
-
 	static PlayerIntent? ToIntent(ConsoleKey key) => key switch
 	{
 		ConsoleKey.W or ConsoleKey.UpArrow => new PlayerIntent.Turn(Direction.Up),

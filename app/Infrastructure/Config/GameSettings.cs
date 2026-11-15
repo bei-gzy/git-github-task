@@ -1,4 +1,4 @@
-namespace App.Config;
+namespace App.Infrastructure.Config;
 
 //配置模型
 public sealed class GameSettings

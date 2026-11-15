@@ -1,4 +1,4 @@
-using App.Protocol;
+
 using App.World;
 
 namespace App.NetWork;
@@ -46,29 +46,6 @@ public sealed class NetSession(MqttTransport mt, NetOptions no) : IAsyncDisposab
 		pump = new SnapshotPump(world, NetOptions.Room, Transport, 100);
 		snapShotTask = pump.RunAsync();
 		//"[host]开始广播快照"
-	}
-
-	public bool PumpInput(out PlayerInput input)
-	{
-		input = default!;
-		if (Transport is null || NetOptions is null) return false;
-		while (Transport.TryReceive(out string topic, out byte[] payload))
-		{
-			if (!topic.EndsWith("/input", StringComparison.Ordinal)) continue;
-			if (payload.Length is 0 or >= 65536) continue;
-			try
-			{
-				input = PlayerInput.Parser.ParseFrom(payload);
-				return true;
-			}
-			catch
-			{
-				Transport.Log?.Invoke($"丢弃乱包{payload}");
-				payload.AsSpan().Clear();
-			}
-		}
-
-		return false;
 	}
 
 	public void StopSnapShot()

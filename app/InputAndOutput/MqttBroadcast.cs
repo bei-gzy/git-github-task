@@ -2,37 +2,15 @@ using Google.Protobuf;
 
 using App.Infrastructure.Mqtt;
 using App.Infrastructure.Proto;
+using App.GameCore;
 
 namespace App.InputAndOutput;
-
-public record PlayerSnapShot(
-	string Id,
-	string? Name,
-	IReadOnlyList<Point> Body,
-	int Score,
-	bool IsAlive,
-	Direction Nextdir
-);
-
-public record FoodSnapShot(
-
-);
-
-public record WorldSnapShot(
-	ulong Tick,
-	int Width,
-	int Height,
-	IReadOnlyList<PlayerSnapShot> PlayerSnapshots,
-	IReadOnlyList<FoodSnapShot> FoodSnapshots,
-	int LastTime,//Math.Max(0, GameDurationSeconds - ElapsedTime.TotalSeconds),
-	bool IsOver
-);
 
 public sealed class MqttBroadcast(string roomId, MqttTransport transport, int intervalMs = 100) : IDisposable
 {
 	readonly CancellationTokenSource cts = new();
 
-	public async Task RunAsync(WorldSnapShot snap, CancellationToken ct = default)//主机发快照给客户端
+	public async Task RunAsync(WorldState snap, CancellationToken ct = default)//主机发快照给客户端
 	{
 		using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(intervalMs));
 
@@ -54,3 +32,4 @@ public sealed class MqttBroadcast(string roomId, MqttTransport transport, int in
 		cts.Dispose();
 	}
 }
+

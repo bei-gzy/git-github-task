@@ -8,7 +8,8 @@ public abstract record PlayerIntent
 	public sealed record Dash : PlayerIntent;
 }
 
-public interface IInputSource//这个端口没毛
-{
-	PlayerIntent Poll();
-}
+public record PlayerInput(
+	PlayerIntent Intent,
+	string Id
+);
+

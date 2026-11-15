@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace App.Config;
+namespace App.Infrastructure.Config;
 
 public static class GameSettingLoader
 {

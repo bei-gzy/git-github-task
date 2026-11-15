@@ -1,4 +1,4 @@
-namespace App.NetWork;
+namespace App.Infrastructure;
 
 //--host / --join / --ping / --broker host[:port] / --room / --name / --help
 //解析命令行参数
