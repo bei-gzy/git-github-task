@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Config/GameSettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Infrastructure/Config/GameSettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

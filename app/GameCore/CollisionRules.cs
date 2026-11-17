@@ -2,14 +2,6 @@ using App.GameCore.Models;
 
 namespace App.GameCore;
 
-public enum HitResult
-{
-	None,
-	Wall,
-	Self,
-	Other
-}
-
 //决策
 public static class CollisionRules
 {

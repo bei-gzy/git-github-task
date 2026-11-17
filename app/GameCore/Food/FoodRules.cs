@@ -6,7 +6,7 @@ public static class FoodRules//纯生成和销毁
 {
 	public static FoodItem? GenerateFood(Random random, WorldState state)
 	{
-		while (state.Foods.Count < state.FoodNum)
+		if (state.Foods.Count < state.FoodNum)
 		{
 			for (int guard = 0; guard < state.Width * state.Height; guard++)//总次数
 			{
@@ -21,5 +21,9 @@ public static class FoodRules//纯生成和销毁
 		return null;
 	}
 
-	public static FoodItem RemoveEatenFood(Point head, WorldState w) => w.Foods.FirstOrDefault(f => f.Position == head);
+	public static FoodItem? RemoveEatenFood(Point head, WorldState w)
+	{
+		var f = w.Foods.FirstOrDefault(f => f.Position == head);
+		return f.Position == head ? f : null;
+	}
 }

@@ -7,7 +7,7 @@ namespace App.GameCore;
 public static class StepLoop//纯函数
 {
 	readonly record struct MoveResult(
-		string Id, Point NewHead, Direction NextDir, bool IsDash
+		string Id, IReadOnlyList<Point> Path, Direction NextDir, bool IsDash
 	);
 
 	public static WorldState NewState(WorldState oldw, IReadOnlyList<PlayerInput> inputs, Random random)
@@ -25,49 +25,24 @@ public static class StepLoop//纯函数
 		{
 			var body = new List<Point>(p.Snake.Body);
 			var nextDir = moveResults.First(m => m.Id == p.Id).NextDir;
-			var newhead = moveResults.First(m => m.Id == p.Id).NewHead;
+			var path = moveResults.First(m => m.Id == p.Id).Path;
 			int score = p.Score;
-			if (moveResults.First(m => m.Id == p.Id).IsDash)
-			{
-				for (int i = 0; i < 2;)
-				{
-					//碰撞
-					if (!p.Snake.IsAlive || dead.Contains(p.Id))
-						return p with { Snake = p.Snake with { IsAlive = false } };
-					//食物 + 加分
-					body.Insert(0, newhead);
-
-					foreach (var f in oldw.Foods)
-					{
-						if (p.Snake.Head == f.Position)
-						{
-							score += f.Type;
-							_ = eaten.Add(FoodRules.RemoveEatenFood(newhead, oldw).Position);
-						}
-						else
-						{
-							body.RemoveAt(p.Snake.Body.Count - 1);
-						}
-					}
-
-					return p with { Snake = p.Snake with { Body = body, Direction = nextDir }, Score = score };
-				}
-			}
 			//碰撞
 			if (!p.Snake.IsAlive || dead.Contains(p.Id))
 				return p with { Snake = p.Snake with { IsAlive = false } };
 			//食物 + 加分
-			body.Insert(0, newhead);
-			foreach (var f in oldw.Foods)
+			foreach (var h in path)
 			{
-				if (p.Snake.Head == f.Position)
+				body.Insert(0, h);
+
+				if (FoodRules.RemoveEatenFood(h, oldw) is { } f)
 				{
 					score += f.Type;
-					_ = eaten.Add(FoodRules.RemoveEatenFood(newhead, oldw).Position);
+					_ = eaten.Add(h);
 				}
 				else
 				{
-					body.RemoveAt(p.Snake.Body.Count - 1);
+					body.RemoveAt(body.Count - 1);
 				}
 			}
 
@@ -104,8 +79,11 @@ public static class StepLoop//纯函数
 		};
 		if (dir == fandir) dir = ps.Snake.Direction;
 
-		var newhead = Move(ps.Snake, dir);
-		return new MoveResult(ps.Id, newhead, dir, dash);
+		var path = new List<Point>();
+		for (int i = 0; i < 2; i++)
+			path.Add(Move(ps.Snake, dir));
+
+		return new MoveResult(ps.Id, path, dir, dash);
 	}
 
 	static Point Move(SnakeState snake, Direction dir)
@@ -126,7 +104,7 @@ public static class StepLoop//纯函数
 	{
 		var dead = new HashSet<string>();
 		//头碰头一起死，GroupBy
-		foreach (var same in moveResults.GroupBy(m => m.NewHead))
+		foreach (var same in moveResults.GroupBy(m => m.Path[^1]))//路径的最后
 		{
 			if (same.Count() > 1)
 			{
@@ -135,10 +113,13 @@ public static class StepLoop//纯函数
 			}
 		}
 
-		foreach (var mr in moveResults)
+		foreach (var mr in moveResults)//每个path的点都要判，否则穿墙
 		{
-			if (CollisionRules.HitTest(w, mr.NewHead, mr.Id) is not HitResult.None)
-				_ = dead.Add(mr.Id);
+			foreach (var h in mr.Path)
+			{
+				if (CollisionRules.HitTest(w, h, mr.Id) is not HitResult.None)
+					_ = dead.Add(mr.Id);
+			}
 		}
 
 		return dead;

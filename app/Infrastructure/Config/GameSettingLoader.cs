@@ -24,7 +24,7 @@ public static class GameSettingLoader
 			return gameSettings;
 
 		//拼路径
-		string path = Path.Combine(AppContext.BaseDirectory, "Config", "GameSettings.json");
+		string path = Path.Combine(AppContext.BaseDirectory, "Infrastructure", "Config", "GameSettings.json");
 		//基本就是从/home/gwj/..../..../Config/GameSettings.json
 
 		//存在与否--抛异常
