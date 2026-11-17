@@ -41,6 +41,40 @@ finally
 	}
 }
 
+public static async Task<NetSession?> StartAsync(NetOptions no)//通过异步完成初始化并完成连接和订阅
+{
+	//房间名 + “-” + 32位无连字符GUID  ：N不带连字符   表达时 ： [..18]范围运算符，也叫格式
+	var mt = new MqttTransport($"{no.Room}-{Guid.NewGuid().ToString("N")[..18]}")
+	{
+		Log = Console.WriteLine
+	};
+	if (!await mt.ConnectAsync(no.BrokerHost, no.BrokerPort)) return null;
+	try
+	{
+		await mt.SubscribeAsync(default, $"snake/{no.Room}/#");
+	}
+	catch
+	{
+		await mt.DisposeAsync();
+		return null;
+	}
+
+	return new NetSession(mt, no);
+}
+
+public static async Task RunAsync(NetSession ns, IRenderer renderer, Func<PlayerIntent?>? poll)
+{
+	if (ns is null) return;
+	var no = ns.NetOptions;
+	switch (no!.NetMode)
+	{
+		case NetMode.Ping: await RunPingAsync(ns, renderer); return;
+		case NetMode.Client: await RunClientAsync(ns, renderer, poll); return;
+		case NetMode.Host: break;
+		default: break;
+	}
+}
+
 /*
 UI (Console)                入口 / 菜单 / 结算
    │

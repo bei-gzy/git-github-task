@@ -5,7 +5,7 @@ namespace App.InputAndOutput;
 //端口
 public interface IRenderer
 {
-	void Draw(WorldState snapShot, string title, string? hint = null);
+	void Draw(WorldState snapShot, string title, ulong tickMs, string? hint = null);
 }
 
 //端口--结算

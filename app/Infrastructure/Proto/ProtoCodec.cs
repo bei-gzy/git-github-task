@@ -32,8 +32,7 @@ public static class ProtoCodec
 			Width = w.Width,
 			Height = w.Height,
 			FoodNum = w.FoodNum,
-			IsOverTime = w.OverTime,
-			RemainingSeconds = w.RemainingSeconds,
+			IsOverTime = w.OverTime
 		};
 
 		msg.Players.AddRange(w.Players.Select(p =>
@@ -76,7 +75,6 @@ public static class ProtoCodec
 					pt.Y
 				))],
 				FromProtoDirection(p.Snake.Direction),
-				p.Snake.Body.Count,
 				p.Snake.IsAlive
 			),
 			p.Score,
@@ -96,8 +94,7 @@ public static class ProtoCodec
 			s.Height,
 			players,
 			foods,
-			s.FoodNum,
-			s.RemainingSeconds
+			s.FoodNum
 		);
 	}
 

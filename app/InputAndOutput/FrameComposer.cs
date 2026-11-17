@@ -40,7 +40,7 @@ public static class FrameComposer
 					var (head, body) = Styles[i % Styles.Length];
 					if (p.Snake.Body.Count > 0)
 					{
-						if (p.Snake.Body[^1] == pt) { c = head; break; }
+						if (p.Snake.Body[0] == pt) { c = head; break; }
 						else if (bodies[i].Contains(pt)) { c = body; break; }
 					}
 				}
@@ -60,7 +60,7 @@ public static class FrameComposer
 		}
 	}
 
-	static void PrintHud(WorldState ws, StringBuilder sb)
+	static void PrintHud(WorldState ws, StringBuilder sb, ulong tickMs)
 	{
 		for (int i = 0; i < ws.Players.Count; i++)
 		{
@@ -70,10 +70,10 @@ public static class FrameComposer
 			_ = sb.AppendLine(CultureInfo.InvariantCulture, $"{head} {name}: {p.Score} 分 长度 {p.Snake.Body.Count} {(p.Snake.IsAlive ? "存活" : "死亡")}");
 		}
 
-		_ = sb.AppendLine(CultureInfo.InvariantCulture, $"剩余 {ws.RemainingSeconds:F0} 秒 食物 {ws.Foods.Count} 个");
+		_ = sb.AppendLine(CultureInfo.InvariantCulture, $"剩余 {(ws.MaxTick - ws.Tick) * tickMs:F0} 秒 食物 {ws.Foods.Count} 个");
 	}
 
-	public static string Draw(WorldState ws, string title, string? hint = null)
+	public static string Draw(WorldState ws, string title, ulong tickMs, string? hint = null)
 	{
 		var sb = new StringBuilder(ws.Width * ws.Height + ws.Height);
 
@@ -83,7 +83,7 @@ public static class FrameComposer
 		_ = sb.AppendLine();
 
 		PrintMap(ws, sb);
-		PrintHud(ws, sb);
+		PrintHud(ws, sb, tickMs);
 		return sb.ToString();
 	}
 }

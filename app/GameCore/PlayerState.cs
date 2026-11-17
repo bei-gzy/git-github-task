@@ -1,18 +1,16 @@
+using App.GameCore.Models;
+
 namespace App.GameCore;
 
 public sealed record PlayerState(
 	string Id,
 	string Name,
 	SnakeState Snake,
-	int Score,
-	double SurvivalTime
+	int Score = 0,
+	double SurvivalTime = 0
 )
 {
-	public string Id { get; init; } = Id;
-	public string? Name { get; init; } = Name;
-	public SnakeState Snake { get; init; } = Snake;
-	public int Score { get; init; } = Score;
-	//Skills Skills;
-	public double SurvivalTime { get; init; } = SurvivalTime;
+	public static PlayerState Create(string id, string name, Point head, Direction direction, int length)
+		=> new(id, name, SnakeState.Create(head, direction, length));
 }
 

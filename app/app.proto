@@ -54,5 +54,4 @@ message GameState {
   repeated FoodState foods = 7;
   int32 food_num = 8;
   bool is_over_time = 9;
-  double remaining_seconds = 10;
 }

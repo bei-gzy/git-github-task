@@ -167,6 +167,19 @@ public sealed class MqttTransport : IAsyncDisposable
 	}
 }
 
+// public static async Task RunPingAsync(NetSession ns, IRenderer renderer)
+// {
+// 	var m = System.Text.Encoding.UTF8;
+// 	using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+// 	while (await timer.WaitForNextTickAsync())
+// 	{
+// 		string text = $"hello from {ns.NetOptions!.Name} @ {DateTime.UtcNow:HH:mm:ss}";
+// 		if (await ns.Transport!.PublishAsync($"snake/{ns.NetOptions!.Room}/hello", m.GetBytes(text)))
+// 			Console.WriteLine($"[ping]发送: {text}");
+// 		Drain(ns, renderer);
+// 	}
+// }
+
 /*
                     ┌──────────── MqttTransport（收发室）────────────┐
   你的游戏主循环 ──▶ │ PublishAsync ──▶ client（快递员）──▶ Broker    │

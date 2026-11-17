@@ -5,10 +5,10 @@ namespace App.InputAndOutput;
 public sealed class ConsoleRenderer() : IRenderer//文本输出，书写
 {
 	//对外的接口->主题画面
-	public void Draw(WorldState snapShot, string title, string? hint)
+	public void Draw(WorldState snapShot, string title, ulong tickMs, string? hint)
 	{
 		Console.Clear();
-		Console.Write(FrameComposer.Draw(snapShot, title, hint));
+		Console.Write(FrameComposer.Draw(snapShot, title, tickMs, hint));
 	}
 }
 
