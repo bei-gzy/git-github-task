@@ -4,7 +4,11 @@ using App.Infrastructure.Config;
 using App.InputAndOutput;
 
 var gameSettings = GameSettingLoader.Load();
-var netOptions = NetOptions.Parse(args, gameSettings.NetWorkConfig.RoomId);
+var netOptions = NetOptions.Parse(args,
+	gameSettings.NetWorkConfig.RoomId,
+	gameSettings.NetWorkConfig.PlayerName,
+	gameSettings.NetWorkConfig.BrokerHost,
+	gameSettings.NetWorkConfig.BrokerPort);
 
 IRenderer renderer = new ConsoleRenderer();
 IRoundResultView resultView = new ConsoleResultView();

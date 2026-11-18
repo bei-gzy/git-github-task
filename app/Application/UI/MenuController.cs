@@ -31,6 +31,13 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 	{
 		if (!Register()) return;
 
+		// 命令行 --host/--join/--ping 指定了网络模式：直接分流，不进主菜单
+		if (netOptions.NetMode != NetMode.None)
+		{
+			await DispatchNetAsync(ct);
+			return;
+		}
+
 		while (!ct.IsCancellationRequested)
 		{
 			Console.Clear();
@@ -49,7 +56,68 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 		}
 	}
 
-	// ───── 注册（替代 Game.Register）─────
+	// ───── 统一分流：根据 NetMode 进入对应网络模式（菜单选 3/4 与命令行共用）─────
+	async Task DispatchNetAsync(CancellationToken ct)
+	{
+		switch (netOptions.NetMode)
+		{
+			case NetMode.Host: await RunHostDirectly(ct); break;
+			case NetMode.Client: await RunClientDirectly(ct); break;
+			case NetMode.Ping: await RunPingDirectly(ct); break;
+		}
+	}
+
+	// ───── 直接开主机（--host）：跳过菜单与注册，用 --name 作本地身份 ─────
+	public async Task RunHostDirectly(CancellationToken ct)
+	{
+		localName = netOptions.Name;
+		localId = netOptions.Name;
+		using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+		var env = new GameSystem.RunEnv(renderer, resultView, (ulong)tickMs, random);
+		await RunNetHostAsync(env, cts);
+	}
+
+	// ───── 直接加入（--join）：只收发（发 input + 收 state 渲染）─────
+	public async Task RunClientDirectly(CancellationToken ct)
+	{
+		using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+		await RunNetClientAsync(cts);
+	}
+
+	// ───── 连通测试（--ping）─────
+	public async Task RunPingDirectly(CancellationToken ct)
+	{
+		await using var mqtt = new MqttTransport($"ping-{Guid.NewGuid():N}"[..23]) { Log = Console.WriteLine };
+		Console.WriteLine($"连接 {netOptions.BrokerHost}:{netOptions.BrokerPort} ...");
+		if (!await mqtt.ConnectAsync(netOptions.BrokerHost, netOptions.BrokerPort, ct: ct))
+		{
+			Console.WriteLine("[ping] 连接失败");
+			return;
+		}
+
+		await mqtt.SubscribeAsync(ct, $"snake/{netOptions.Room}/#");
+		if (!await mqtt.PublishAsync($"snake/{netOptions.Room}/hello",
+			System.Text.Encoding.UTF8.GetBytes($"ping {DateTime.UtcNow:HH:mm:ss}"), ct))
+		{
+			Console.WriteLine("[ping] 发送 hello 失败");
+		}
+
+		var deadline = DateTime.UtcNow.AddSeconds(3);
+		while (DateTime.UtcNow < deadline && !ct.IsCancellationRequested)
+		{
+			if (mqtt.TryReceive(out string topic, out byte[] payload))
+			{
+				Console.WriteLine($"[ping] 收到回包: {topic} {System.Text.Encoding.UTF8.GetString(payload)}");
+				return;
+			}
+
+			await Task.Delay(100, ct);
+		}
+
+		Console.WriteLine("[ping] 超时(broker 已通但无回包）");
+	}
+
+	// ───── 注册 ─────
 	bool Register()
 	{
 		Console.Clear();
@@ -66,12 +134,13 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 
 			localName = name;
 			localId = Guid.NewGuid().ToString("N")[..8];
+			netOptions.Name = name;
 			Console.WriteLine($"已将你的名字设置为：{name}");
 			return true;
 		}
 	}
 
-	// ───── 模式选择（替代 Game.Start）─────
+	// ───── 模式选择 ─────
 	async Task ChooseModeAsync(CancellationToken ct)
 	{
 		Console.Clear();
@@ -91,8 +160,16 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 		{
 			case ConsoleKey.D1: await RunSingleAsync(env, cts); break;
 			case ConsoleKey.D2: await RunDoubleAsync(env, cts); break;
-			case ConsoleKey.D3: await RunNetHostAsync(env, cts); break;
-			case ConsoleKey.D4: await RunNetClientAsync(cts); break;
+			case ConsoleKey.D3:
+				netOptions.NetMode = NetMode.Host;   // 标注状态
+				await DispatchNetAsync(ct);
+				netOptions.NetMode = NetMode.None;   // 复位
+				break;
+			case ConsoleKey.D4:
+				netOptions.NetMode = NetMode.Client;
+				await DispatchNetAsync(ct);
+				netOptions.NetMode = NetMode.None;
+				break;
 		}
 	}
 
@@ -118,30 +195,112 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 		await GameSystem.RunDoubleAsync(state, p1, p2, env, cts.Token);
 	}
 
-	// ───── 网络主机：1 本地 + 1 远端（可扩成多个 RemoteInput）─────
+	// ───── 网络主机：1 本地 + 远端 ─────
 	async Task RunNetHostAsync(GameSystem.RunEnv env, CancellationTokenSource cts)
 	{
 		var mqtt = await ConnectMqttAsync();
 		if (mqtt is null) return;
 		await using var _ = mqtt;
 
-		string guestId = "remote-" + Guid.NewGuid().ToString("N")[..6];
-		var state = BuildState(localId, guestId);
+		// 等待玩家加入
+		Console.Clear();
+		Console.WriteLine($"主机已就绪，房间 {netOptions.Room}");
+		Console.WriteLine("等待玩家加入...（按 Esc 取消）");
 
+		if (cts.IsCancellationRequested) return;
+
+		Dictionary<string, PlayerState> remotePlayers = [];
+		string? guestId = await WaitForPlayerAsync(mqtt, cts);
+		if (guestId is null) return;
+
+		var state = BuildState(localId);
 		var local = new LocalInput(localId, KeyLayout.Wasd, cts);
-		var remote = new RemoteInput(mqtt, guestId);
-		await GameSystem.RunNetAsync(state, local, [remote], env, cts.Token);
+		var remote = new RemoteInput(mqtt);
+		var broadcast = new MqttBroadcast(netOptions.Room, mqtt);
+		await GameSystem.RunNetAsync(state, local, [remote], env with { Broadcast = broadcast }, cts.Token);
 	}
 
-	// ───── 网络客户端：发 input + 收 state 观战 ─────
+	// ───── 网络客户端：发 input + 收 state 观战 ───── 展望未来
 	async Task RunNetClientAsync(CancellationTokenSource cts)
 	{
 		var mqtt = await ConnectMqttAsync();
 		if (mqtt is null) return;
-		await using var _ = mqtt;
+		await using var _ = mqtt; //mqtt 方法结束时Dispose，释放连接
 
-		var input = new LocalInput(localId, KeyLayout.Wasd, cts);
+		// 先发 hello 宣布加入，再等主机
+		Console.Clear();
+		Console.WriteLine($"已加入房间 {netOptions.Room}");
+		Console.WriteLine("正在等待主机开始游戏...（按 Esc 取消）");
+		if (!await mqtt.PublishAsync($"snake/{netOptions.Room}/hello",
+			System.Text.Encoding.UTF8.GetBytes($"hi,{netOptions.Name}已加入"), cts.Token))
+		{
+			Console.WriteLine("[net] 发布 hello 失败");
+		}
+
+		await WaitForHostAsync(mqtt, cts);
+
+		if (cts.IsCancellationRequested) return;
+
+		var input = new LocalInput(netOptions.Name, KeyLayout.Wasd, cts);
 		await ClientRunner.ClientRound(new RunnerContext(mqtt, netOptions, input, renderer, resultView, tickMs, cts.Token));
+	}
+
+	// 主机：等待客户端 hello/input，或 Esc 取消，或 30 秒超时
+	static async Task<string?> WaitForPlayerAsync(MqttTransport mqtt, CancellationTokenSource cts)
+	{
+		var deadline = DateTime.UtcNow.AddSeconds(30);
+		while (DateTime.UtcNow < deadline && !cts.IsCancellationRequested)
+		{
+			if (Console.KeyAvailable && Console.ReadKey(intercept: true).Key == ConsoleKey.Escape)
+			{
+				cts.Cancel();
+				return null;
+			}
+
+			while (mqtt.TryReceive(out string topic, out byte[] payload))
+			{
+				if (topic.EndsWith("/input", StringComparison.Ordinal))
+				{
+					var msg = Protocol.PlayerState.Parser.ParseFrom(payload);
+					Console.WriteLine("玩家已加入，开始游戏！");
+					return msg.PlayerId;
+				}
+			}
+
+			await Task.Delay(100, cts.Token);
+		}
+
+		if (!cts.IsCancellationRequested)
+			Console.WriteLine("等待超时，开始游戏");
+		return "remote";
+	}
+
+	// 客户端：等待主机 /state，或 Esc 取消，或 30 秒超时
+	static async Task WaitForHostAsync(MqttTransport mqtt, CancellationTokenSource cts)
+	{
+		var deadline = DateTime.UtcNow.AddSeconds(30);
+		while (DateTime.UtcNow < deadline && !cts.IsCancellationRequested)
+		{
+			if (Console.KeyAvailable && Console.ReadKey(intercept: true).Key == ConsoleKey.Escape)
+			{
+				cts.Cancel();
+				return;
+			}
+
+			while (mqtt.TryReceive(out string topic, out _))
+			{
+				if (topic.EndsWith("/state", StringComparison.Ordinal))
+				{
+					Console.WriteLine("主机已开始，进入游戏！");
+					return;
+				}
+			}
+
+			await Task.Delay(100, cts.Token);
+		}
+
+		if (!cts.IsCancellationRequested)
+			Console.WriteLine("等待超时");
 	}
 
 	async Task<MqttTransport?> ConnectMqttAsync()
@@ -162,14 +321,14 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 		return mqtt;
 	}
 
-	// ───── 设置（替代 Game.SetMenu + ChangeTime）─────
+	// ───── 设置 ─────
 	void Setting()
 	{
 		while (true)
 		{
 			Console.Clear();
 			Console.WriteLine("—————设置菜单—————");
-			Console.WriteLine($"1、设置地图大小（当前 {width}×{height}）");
+			Console.WriteLine($"1、设置地图大小(当前 {width}×{height})");
 			Console.WriteLine($"2、设置初始速度（当前 {tickMs} 毫秒/格）");
 			Console.WriteLine($"3、设置游戏时间（当前 {durationSeconds} 秒）");
 			Console.WriteLine($"4、修改名字（当前 {localName}）");
@@ -249,7 +408,7 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 		_ = Console.ReadKey(intercept: true);
 	}
 
-	// ───── 退出（替代 Game.ExitGame）─────
+	// ───── 退出 ─────
 	static bool ConfirmExit()
 	{
 		Console.Clear();

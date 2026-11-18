@@ -10,7 +10,7 @@ public static class StepLoop//纯函数
 		string Id, IReadOnlyList<Point> Path, Direction NextDir, bool IsDash
 	);
 
-	public static WorldState NewState(WorldState oldw, IReadOnlyList<PlayerInput> inputs, Random random)
+	public static WorldState NewState(WorldState oldw, IReadOnlyList<PlayerInput> inputs, Random random, double tickSeconds)
 	{
 		var moveResults = oldw.Players
 			.Where(p => p.Snake.IsAlive) // 筛选
@@ -46,16 +46,15 @@ public static class StepLoop//纯函数
 				}
 			}
 
-			return p with { Snake = p.Snake with { Body = body, Direction = nextDir }, Score = score };
+			return p with { Snake = p.Snake with { Body = body, Direction = nextDir }, Score = score, SurvivalTime = p.SurvivalTime + tickSeconds };
 		}).ToList();
 
 		var foods = oldw.Foods.Where(f => !eaten.Contains(f.Position)).ToList();
 
-		int foodnum = oldw.FoodNum;
 		if (FoodRules.GenerateFood(random, oldw) is { } generatedFood)
-			foods.Add(generatedFood); foodnum++;
+			foods.Add(generatedFood);
 
-		return oldw with { Tick = oldw.Tick + 1, Players = players, Foods = foods, FoodNum = foodnum };
+		return oldw with { Tick = oldw.Tick + 1, Players = players, Foods = foods };
 	}
 
 	static PlayerIntent? FindIntent(IReadOnlyList<PlayerInput> inputs, string id) => inputs.FirstOrDefault(i => i.Id == id)?.Intent;
@@ -80,24 +79,24 @@ public static class StepLoop//纯函数
 		if (dir == fandir) dir = ps.Snake.Direction;
 
 		var path = new List<Point>();
-		for (int i = 0; i < 2; i++)
-			path.Add(Move(ps.Snake, dir));
+		var head = ps.Snake.Head;
+		for (int i = 0; i < (dash ? 2 : 1); i++)
+		{
+			head = Move(head, dir);
+			path.Add(head);
+		}
 
 		return new MoveResult(ps.Id, path, dir, dash);
 	}
 
-	static Point Move(SnakeState snake, Direction dir)
+	static Point Move(Point head, Direction dir) => dir switch
 	{
-		var head = snake.Head;
-		return dir switch
-		{
-			Direction.Up => new Point(head.X, head.Y - 1),
-			Direction.Down => new Point(head.X, head.Y + 1),
-			Direction.Left => new Point(head.X - 1, head.Y),
-			Direction.Right => new Point(head.X + 1, head.Y),
-			_ => head//不会走到这一步
-		};
-	}
+		Direction.Up => new Point(head.X, head.Y - 1),
+		Direction.Down => new Point(head.X, head.Y + 1),
+		Direction.Left => new Point(head.X - 1, head.Y),
+		Direction.Right => new Point(head.X + 1, head.Y),
+		_ => head
+	};
 
 	//碰撞判死只用Id记录
 	static HashSet<string> CollisionResult(WorldState w, IReadOnlyList<MoveResult> moveResults)

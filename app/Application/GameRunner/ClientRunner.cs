@@ -26,32 +26,35 @@ public static class ClientRunner
 {
 	public static async Task ClientRound(RunnerContext rct)
 	{
-		Console.WriteLine($"[Client]已加入房间 {rct.NetOptions.Room},WASD 操控玩家2,Q 退出");
 		using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(rct.TickMs));
 
 		var lastDir = GameCore.Models.Direction.Down;
 		ulong clientTick = 0;
-		bool onlyreadone = false;
 		GameState? lastState = null;
-		var m = System.Text.Encoding.UTF8;
 
 		while (await timer.WaitForNextTickAsync(rct.Ct))
 		{
+			// 清除上一帧遗留的本地输入，避免积压按键在本帧被重复处理；随后只采集当前帧输入。
+			LocalInput.Clear();
 			if (rct.IInput.Capture() is { } input)
 			{
-				var (dir, dash) = input.Intent switch
+				foreach (var i in input)
 				{
-					PlayerIntent.Turn(var d) => (d, false),
-					PlayerIntent.Dash => (lastDir, true),
-					_ => (lastDir, false)
-				};
+					var (dir, dash) = i.Intent switch
+					{
+						PlayerIntent.Turn(var d) => (d, false),
+						PlayerIntent.Dash => (lastDir, true),
+						_ => (lastDir, false)
+					};
 
-				lastDir = dir;
+					lastDir = dir;
 
-				_ = await rct.Mqtt.PublishAsync($"snake/{rct.NetOptions.Room}/input", ProtoCodec.ToProtoInput(rct.NetOptions, dash, dir, ++clientTick).ToByteArray(), rct.Ct);
+					if (!await rct.Mqtt.PublishAsync($"snake/{rct.NetOptions.Room}/input", ProtoCodec.ToProtoInput(rct.NetOptions, dash, dir, ++clientTick).ToByteArray(), rct.Ct))
+						rct.Mqtt.Log?.Invoke("[net] 发布 input 失败");
+				}
 			}
 
-			while (!rct.Mqtt.TryReceive(out string topic, out byte[] payload))
+			while (rct.Mqtt.TryReceive(out string topic, out byte[] payload))
 			{
 				if (payload.Length is 0 or >= 65536) continue;
 
@@ -70,11 +73,6 @@ public static class ClientRunner
 
 			if (lastState is not null)
 				rct.Renderer.Draw(ProtoCodec.FromProtoState(lastState), $"————— 观战 房间={rct.NetOptions.Room} —————", (ulong)rct.TickMs);
-
-			//只在首次连接成功输出
-			if (onlyreadone) continue;
-			onlyreadone = true;
-			_ = await rct.Mqtt.PublishAsync($"snake/{rct.NetOptions.Room}/hello", m.GetBytes($"hi,{rct.NetOptions.Name}已加入"));
 		}
 	}
 }

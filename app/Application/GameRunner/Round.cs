@@ -11,7 +11,8 @@ public sealed record RoundContext
 	IReadOnlyList<IInputSource> Inputs,
 	IRenderer Renderer,
 	IRoundResultView ResultView,
-	ulong TickMilliseconds
+	ulong TickMilliseconds,
+	MqttBroadcast? Broadcast = null
 );
 
 public static class Round
@@ -23,18 +24,23 @@ public static class Round
 		using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(rct.TickMilliseconds));
 		while (!RoundRules.IsGameOver(state) && !ct.IsCancellationRequested)
 		{
+			LocalInput.Clear();
 			var intents = rct.Inputs
-				.Select(p => p.Capture())
+				.SelectMany(p => p.Capture()!)// 合并所有输入源捕获到的操作意图，统一交给后续状态更新逻辑
 				.Where(i => i is not null)
 				.Select(i => i!)                // 告诉编译器：经过过滤后，这里不会是 null
 				.ToList();
-			state = StepLoop.NewState(state, intents, random);
+			state = StepLoop.NewState(state, intents, random, rct.TickMilliseconds / 1000.0);
 
 			rct.Renderer.Draw(state, rct.Title, rct.TickMilliseconds, rct.Hint);
+			if (rct.Broadcast is not null)
+				await rct.Broadcast.Publish(state, ct);
 
 			if (!await timer.WaitForNextTickAsync(ct)) break;
 		}
 
-		rct.ResultView.ShowResult(RoundRules.Results(state));
+		if (rct.Broadcast is not null)
+			await rct.Broadcast.Publish(state, ct);   // 终局帧
+		rct.ResultView.ShowResult(RoundRules.Results(state, rct.TickMilliseconds));
 	}
 }

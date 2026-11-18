@@ -24,7 +24,7 @@ public sealed class ConsoleResultView() : IRoundResultView
 			Console.WriteLine(ps[0].IsAlive ? "时间到！" : "Gaming Over!");
 			Console.WriteLine("得分: " + ps[0].Score);
 			Console.WriteLine("长度: " + ps[0].Length);
-			Console.WriteLine($"存活: {ps[0].SurviavalTime:F1} 秒");
+			Console.WriteLine($"存活: {ps[0].SurvivalTime:F1} 秒");
 		}
 
 		else
@@ -40,7 +40,7 @@ public sealed class ConsoleResultView() : IRoundResultView
 		}
 
 		Console.WriteLine();
-		Console.WriteLine("按下任意健继续");
+		Console.WriteLine("按下任意键继续");
 		while (Console.KeyAvailable)
 			_ = Console.ReadKey(intercept: true);
 		_ = Console.ReadKey(intercept: true);

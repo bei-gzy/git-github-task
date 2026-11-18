@@ -6,30 +6,14 @@ using App.GameCore;
 
 namespace App.InputAndOutput;
 
-public sealed class MqttBroadcast(string roomId, MqttTransport transport, int intervalMs = 100) : IDisposable
+//输出源：把一帧 WorldState 序列化后广播到 MQTT 主题 snake/{room}/state
+//由 Round 循环每帧调用 Publish，只负责"发一帧"
+public sealed class MqttBroadcast(string roomId, MqttTransport transport)
 {
-	readonly CancellationTokenSource cts = new();
-
-	public async Task RunAsync(WorldState snap, CancellationToken ct = default)//主机发快照给客户端
+	public async Task Publish(WorldState state, CancellationToken ct = default)
 	{
-		using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(intervalMs));
-
-		try
-		{
-			while (await timer.WaitForNextTickAsync(cts.Token))
-			{
-				var msg = ProtoCodec.ToProtoState(snap, roomId);
-				if (!await transport.PublishAsync($"snake/{roomId}/state", msg.ToByteArray(), cts.Token))
-					transport.Log?.Invoke("[mqtt] 发布状态失败");
-			}
-		}
-		catch (OperationCanceledException) { }
-	}
-
-	public void Dispose()//舍弃throw new NotImplementedException
-	{
-		cts.Cancel();
-		cts.Dispose();
+		var msg = ProtoCodec.ToProtoState(state, roomId);
+		if (!await transport.PublishAsync($"snake/{roomId}/state", msg.ToByteArray(), ct))
+			transport.Log?.Invoke("[mqtt] 发布状态失败");
 	}
 }
-

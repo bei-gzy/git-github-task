@@ -4,10 +4,11 @@ using App.Protocol;
 
 namespace App.InputAndOutput;
 
-public sealed class RemoteInput(MqttTransport mqtt, string id) : IInputSource
+public sealed class RemoteInput(MqttTransport mqtt) : IInputSource
 {
-	public GameCore.PlayerInput? Capture()
+	public IReadOnlyList<GameCore.PlayerInput>? Capture()
 	{
+		var inputs = new List<GameCore.PlayerInput>();
 		while (mqtt.TryReceive(out string topic, out byte[] payload))
 		{
 			if (!topic.EndsWith("/input", StringComparison.Ordinal)) continue;
@@ -16,16 +17,18 @@ public sealed class RemoteInput(MqttTransport mqtt, string id) : IInputSource
 			{
 				var msg = Protocol.PlayerInput.Parser.ParseFrom(payload);
 
-				return msg.UseDash
-					? new GameCore.PlayerInput(new PlayerIntent.Dash(), id)
+				var input = msg.UseDash
+					? new GameCore.PlayerInput(new PlayerIntent.Dash(), msg.PlayerId)
 					: msg.Direction switch
 					{
-						Direction.Up => new GameCore.PlayerInput(new PlayerIntent.Turn(GameCore.Models.Direction.Up), id),
-						Direction.Down => new GameCore.PlayerInput(new PlayerIntent.Turn(GameCore.Models.Direction.Down), id),
-						Direction.Left => new GameCore.PlayerInput(new PlayerIntent.Turn(GameCore.Models.Direction.Left), id),
-						Direction.Right => new GameCore.PlayerInput(new PlayerIntent.Turn(GameCore.Models.Direction.Right), id),
+						Direction.Up => new GameCore.PlayerInput(new PlayerIntent.Turn(GameCore.Models.Direction.Up), msg.PlayerId),
+						Direction.Down => new GameCore.PlayerInput(new PlayerIntent.Turn(GameCore.Models.Direction.Down), msg.PlayerId),
+						Direction.Left => new GameCore.PlayerInput(new PlayerIntent.Turn(GameCore.Models.Direction.Left), msg.PlayerId),
+						Direction.Right => new GameCore.PlayerInput(new PlayerIntent.Turn(GameCore.Models.Direction.Right), msg.PlayerId),
 						_ => null
 					};
+				if (input is not null)
+					inputs.Add(input);
 			}
 			catch
 			{
@@ -34,6 +37,6 @@ public sealed class RemoteInput(MqttTransport mqtt, string id) : IInputSource
 			}
 		}
 
-		return null;
+		return inputs;
 	}
 }

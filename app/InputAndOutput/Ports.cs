@@ -16,6 +16,6 @@ public interface IRoundResultView
 
 public interface IInputSource
 {
-	PlayerInput? Capture();
+	IReadOnlyList<PlayerInput>? Capture();
 }
 

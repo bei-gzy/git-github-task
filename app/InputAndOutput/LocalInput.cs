@@ -7,24 +7,45 @@ public enum KeyLayout { Wasd, Arrows }
 
 public sealed class LocalInput(string id, KeyLayout layout, CancellationTokenSource cts) : IInputSource
 {
-	public PlayerInput? Capture()
-	{
-		PlayerIntent? last = null;
-		while (Console.KeyAvailable)
-		{
-			var key = Console.ReadKey(intercept: true).Key;
+	// 每 tick 由 Round / ClientRunner 调 Drain() 统一读一次，多个 LocalInput 共享这批按键。
+	// 否则先执行的 Capture 会把 Console 缓冲读光，后一个玩家永远收不到键。
+	static readonly List<ConsoleKey> SharedKeys = [];
 
+	public static void Clear()
+	{
+		SharedKeys.Clear();
+		while (Console.KeyAvailable)
+			SharedKeys.Add(Console.ReadKey(intercept: true).Key);
+	}
+
+	public IReadOnlyList<PlayerInput>? Capture()
+	{
+		foreach (var key in SharedKeys)
+		{
 			if (key is ConsoleKey.Escape)
 			{
 				cts.Cancel();
 				return null;//仍然返回空是因为和ToIntent做统一
 			}
-
-			last = ToIntent(key, layout);
 		}
 
-		return last is null ? null : new PlayerInput(last, id);
+		var intent = Route(SharedKeys, layout);
+		return intent is null ? [] : [new PlayerInput(intent, id)];
 	}
+
+	// 把同一批按键按 layout 路由成意图（纯函数，便于单测：双人两人各取各的键）
+	public static PlayerIntent? Route(IReadOnlyList<ConsoleKey> keys, KeyLayout layout)
+	{
+		PlayerIntent? last = null;
+		foreach (var key in keys)
+		{
+			var intent = ToIntent(key, layout);
+			if (intent is not null) last = intent;
+		}
+
+		return last;
+	}
+
 	static PlayerIntent? ToIntent(ConsoleKey key, KeyLayout layout) => (key, layout) switch
 	{
 		(ConsoleKey.W, KeyLayout.Wasd) or (ConsoleKey.UpArrow, KeyLayout.Arrows) => new PlayerIntent.Turn(Direction.Up),

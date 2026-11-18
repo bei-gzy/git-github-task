@@ -11,7 +11,8 @@ public static class GameSystem
 		IRenderer Renderer,
 		IRoundResultView ResultView,
 		ulong TickMilliseconds,
-		Random Random);
+		Random Random,
+		MqttBroadcast? Broadcast = null);
 
 	//单人
 	public static Task RunSingleAsync(
@@ -53,7 +54,7 @@ public static class GameSystem
 		CancellationToken ct)
 	{
 		var context = new RoundContext(
-			state, hint, title, inputs, env.Renderer, env.ResultView, env.TickMilliseconds);
+			state, hint, title, inputs, env.Renderer, env.ResultView, env.TickMilliseconds, env.Broadcast);
 		return Round.RunAsync(context, env.Random, ct);
 	}
 

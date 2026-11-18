@@ -14,9 +14,15 @@ public sealed class NetOptions
 	public string Room { get; set; } = "snake-dev";
 	public string Name { get; set; } = "player";
 
-	public static NetOptions Parse(string[] args, string defaultRoom)//Parse解析
+	public static NetOptions Parse(
+		string[] args,
+		string defaultRoom,
+		string defaultPlayerName = "player",
+		string defaultBrokerHost = "broker.emqx.io",
+		int defaultBrokerPort = 1883
+	)//Parse解析
 	{
-		var no = new NetOptions { Room = defaultRoom };
+		var no = new NetOptions { Room = defaultRoom, Name = defaultPlayerName, BrokerHost = defaultBrokerHost, BrokerPort = defaultBrokerPort };
 		for (int i = 0; i < args.Length; i++)
 		{
 			switch (args[i])

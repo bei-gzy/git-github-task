@@ -70,7 +70,7 @@ public static class FrameComposer
 			_ = sb.AppendLine(CultureInfo.InvariantCulture, $"{head} {name}: {p.Score} 分 长度 {p.Snake.Body.Count} {(p.Snake.IsAlive ? "存活" : "死亡")}");
 		}
 
-		_ = sb.AppendLine(CultureInfo.InvariantCulture, $"剩余 {(ws.MaxTick - ws.Tick) * tickMs:F0} 秒 食物 {ws.Foods.Count} 个");
+		_ = sb.AppendLine(CultureInfo.InvariantCulture, $"剩余 {(ws.MaxTick - ws.Tick) * tickMs / 1000.0:F0} 秒 食物 {ws.Foods.Count} 个");
 	}
 
 	public static string Draw(WorldState ws, string title, ulong tickMs, string? hint = null)

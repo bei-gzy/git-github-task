@@ -19,7 +19,7 @@
   {
 	"BrokerHost": "localhost",
 	"BrokerPort": 1883,
-	"BrokerUsername": "player",
+	"PlayerName": "player",
 	"RoomId": "room1"
   },
 

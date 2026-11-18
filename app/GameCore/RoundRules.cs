@@ -5,7 +5,7 @@ public readonly record struct PlayerResult(
 	bool IsAlive,
 	int Score,
 	int Length,
-	double SurviavalTime
+	double SurvivalTime
 );
 
 public readonly record struct RoundResults(
@@ -17,14 +17,19 @@ public readonly record struct RoundResults(
 
 public static class RoundRules
 {
-	public static bool IsGameOver(WorldState state) => state.OverTime || state.Players.Any(p => !p.Snake.IsAlive);
+	public static bool IsGameOver(WorldState state)
+	{
+		if (state.OverTime) return true;
+		int alive = state.Players.Count(p => p.Snake.IsAlive);
+		return state.Players.Count == 1 ? alive == 0 : alive <= 1;
+	}
 
-	public static RoundResults Results(WorldState s)
+	public static RoundResults Results(WorldState s, ulong tickMs)
 	{
 		var results = s.Players
 			.Select(p => new PlayerResult(p.Id, p.Snake.IsAlive, p.Score, p.Snake.Body.Count, p.SurvivalTime))
 			.ToList();
-		return new RoundResults(s.OverTime, results, Winner(results), s.Tick);
+		return new RoundResults(s.OverTime, results, Winner(results), s.Tick * tickMs / 1000.0);
 	}
 
 	public static PlayerResult? Winner(IReadOnlyList<PlayerResult> playersResult)
@@ -32,7 +37,7 @@ public static class RoundRules
 		if (playersResult.Count is 0) return null;
 		var msg = playersResult//Linq倒叙排序
 			.OrderByDescending(p => p.IsAlive)
-			.ThenByDescending(p => p.SurviavalTime)
+			.ThenByDescending(p => p.SurvivalTime)
 			.ThenByDescending(p => p.Score)
 			.ThenByDescending(p => p.Length)
 			.ToList();
@@ -46,5 +51,5 @@ public static class RoundRules
 			player.IsAlive == playersResult[0].IsAlive &&
 			player.Score == playersResult[0].Score &&
 			player.Length == playersResult[0].Length &&
-			player.SurviavalTime == playersResult[0].SurviavalTime);
+			player.SurvivalTime == playersResult[0].SurvivalTime);
 }

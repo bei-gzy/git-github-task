@@ -27,7 +27,7 @@ public sealed class NetWorkConfig//MQTT通讯
 {
 	public string BrokerHost { get; init; } = "localhost";
 	public int BrokerPort { get; init; } = 1883;
-	public string BrokerUsername { get; init; } = "player";
+	public string PlayerName { get; init; } = "player";
 	public string RoomId { get; init; } = "room1";
 }
 
