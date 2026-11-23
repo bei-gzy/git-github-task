@@ -18,14 +18,14 @@ public sealed class LocalInput(string id, KeyLayout layout, CancellationTokenSou
 			SharedKeys.Add(Console.ReadKey(intercept: true).Key);
 	}
 
-	public IReadOnlyList<PlayerInput>? Capture()
+	public IReadOnlyList<PlayerInput> Capture()
 	{
 		foreach (var key in SharedKeys)
 		{
 			if (key is ConsoleKey.Escape)
 			{
 				cts.Cancel();
-				return null;//仍然返回空是因为和ToIntent做统一
+				return [];//仍然返回空是因为和ToIntent做统一
 			}
 		}
 

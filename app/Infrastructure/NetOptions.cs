@@ -13,6 +13,7 @@ public sealed class NetOptions
 	public int BrokerPort { get; set; } = 1883;
 	public string Room { get; set; } = "snake-dev";
 	public string Name { get; set; } = "player";
+	//public string PlayerId { get; set; } = "0";
 
 	public static NetOptions Parse(
 		string[] args,

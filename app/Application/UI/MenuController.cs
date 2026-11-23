@@ -3,6 +3,9 @@ using App.InputAndOutput;
 using App.Application.GameRunner;
 using App.Infrastructure;
 using App.Infrastructure.Mqtt;
+using App.Infrastructure.Proto;
+
+using Google.Protobuf;
 
 namespace App.Application.UI;
 
@@ -132,9 +135,8 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 				continue;
 			}
 
-			localName = name;
+			netOptions.Name = localName = name;
 			localId = Guid.NewGuid().ToString("N")[..8];
-			netOptions.Name = name;
 			Console.WriteLine($"已将你的名字设置为：{name}");
 			return true;
 		}
@@ -200,7 +202,6 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 	{
 		var mqtt = await ConnectMqttAsync();
 		if (mqtt is null) return;
-		await using var _ = mqtt;
 
 		// 等待玩家加入
 		Console.Clear();
@@ -209,15 +210,22 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 
 		if (cts.IsCancellationRequested) return;
 
-		Dictionary<string, PlayerState> remotePlayers = [];
-		string? guestId = await WaitForPlayerAsync(mqtt, cts);
-		if (guestId is null) return;
+		HashSet<string> remotePlayers = [];
+		while (!cts.IsCancellationRequested)
+		{
+			var (guestId, hasPlayer) = await WaitForPlayerAsync(mqtt, cts);
+			if (!hasPlayer || guestId is null) break;
+			_ = remotePlayers.Add(guestId);
+		}
 
-		var state = BuildState(localId);
+		if (cts.IsCancellationRequested) return;
+
+		var state = BuildState([localId, .. remotePlayers]);
 		var local = new LocalInput(localId, KeyLayout.Wasd, cts);
 		var remote = new RemoteInput(mqtt);
 		var broadcast = new MqttBroadcast(netOptions.Room, mqtt);
 		await GameSystem.RunNetAsync(state, local, [remote], env with { Broadcast = broadcast }, cts.Token);
+		remotePlayers.Clear();
 	}
 
 	// ───── 网络客户端：发 input + 收 state 观战 ───── 展望未来
@@ -231,10 +239,13 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 		Console.Clear();
 		Console.WriteLine($"已加入房间 {netOptions.Room}");
 		Console.WriteLine("正在等待主机开始游戏...（按 Esc 取消）");
-		if (!await mqtt.PublishAsync($"snake/{netOptions.Room}/hello",
-			System.Text.Encoding.UTF8.GetBytes($"hi,{netOptions.Name}已加入"), cts.Token))
+
+		if (!await mqtt.PublishAsync($"snake/{netOptions.Room}/input",
+			ProtoCodec.ToProtoInput(netOptions, false, GameCore.Models.Direction.Down, 0).ToByteArray(),
+			cts.Token
+		))
 		{
-			Console.WriteLine("[net] 发布 hello 失败");
+			Console.WriteLine("[net] 发布 join 失败");
 		}
 
 		await WaitForHostAsync(mqtt, cts);
@@ -246,15 +257,15 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 	}
 
 	// 主机：等待客户端 hello/input，或 Esc 取消，或 30 秒超时
-	static async Task<string?> WaitForPlayerAsync(MqttTransport mqtt, CancellationTokenSource cts)
+	static async Task<(string?, bool)> WaitForPlayerAsync(MqttTransport mqtt, CancellationTokenSource cts)
 	{
 		var deadline = DateTime.UtcNow.AddSeconds(30);
 		while (DateTime.UtcNow < deadline && !cts.IsCancellationRequested)
 		{
-			if (Console.KeyAvailable && Console.ReadKey(intercept: true).Key == ConsoleKey.Escape)
+			if (Console.KeyAvailable && Console.ReadKey(intercept: true).Key is ConsoleKey.Escape)
 			{
 				cts.Cancel();
-				return null;
+				return (null, false);
 			}
 
 			while (mqtt.TryReceive(out string topic, out byte[] payload))
@@ -262,8 +273,8 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 				if (topic.EndsWith("/input", StringComparison.Ordinal))
 				{
 					var msg = Protocol.PlayerState.Parser.ParseFrom(payload);
-					Console.WriteLine("玩家已加入，开始游戏！");
-					return msg.PlayerId;
+					Console.WriteLine($"玩家 {msg.Name} 已加入！");
+					return (msg.PlayerId, true);
 				}
 			}
 
@@ -272,7 +283,7 @@ public sealed class MenuController(IRenderer renderer, IRoundResultView resultVi
 
 		if (!cts.IsCancellationRequested)
 			Console.WriteLine("等待超时，开始游戏");
-		return "remote";
+		return (null, false);
 	}
 
 	// 客户端：等待主机 /state，或 Esc 取消，或 30 秒超时

@@ -6,7 +6,7 @@ namespace App.InputAndOutput;
 
 public sealed class RemoteInput(MqttTransport mqtt) : IInputSource
 {
-	public IReadOnlyList<GameCore.PlayerInput>? Capture()
+	public IReadOnlyList<GameCore.PlayerInput> Capture()
 	{
 		var inputs = new List<GameCore.PlayerInput>();
 		while (mqtt.TryReceive(out string topic, out byte[] payload))

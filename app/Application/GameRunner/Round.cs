@@ -26,9 +26,7 @@ public static class Round
 		{
 			LocalInput.Clear();
 			var intents = rct.Inputs
-				.SelectMany(p => p.Capture()!)// 合并所有输入源捕获到的操作意图，统一交给后续状态更新逻辑
-				.Where(i => i is not null)
-				.Select(i => i!)                // 告诉编译器：经过过滤后，这里不会是 null
+				.SelectMany(p => p.Capture())// 合并所有输入源捕获到的操作意图，统一交给后续状态更新逻辑
 				.ToList();
 			state = StepLoop.NewState(state, intents, random, rct.TickMilliseconds / 1000.0);
 
